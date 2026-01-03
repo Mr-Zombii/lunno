@@ -1,0 +1,78 @@
+# math functions for Lunno
+
+let pi: float = 3.141592653589793
+let e: float = 2.718281828459045
+
+let add: fn(T, T) -> T =
+    fn(a, b) -> a + b
+
+let sub: fn(T, T) -> T =
+    fn(a, b) -> a - b
+
+let mul: fn(T, T) -> T =
+    fn(a, b) -> a * b
+
+let div: fn(T, T) -> T =
+    fn(a, b) -> a / b
+
+let sign: fn(int) -> int =
+    fn(x) ->
+        if x < 0 then -1
+        else if x > 0 then 1
+        else 0
+
+let powi: fn(float, int) -> float =
+    fn(base, exp) ->
+        let rec loop: fn(float, int, float) -> float =
+            fn(b, e, acc) ->
+                if e == 0 then acc
+                else loop(b, e - 1, acc * b)
+        if exp < 0
+        then 1.0 / loop(base, -exp, 1.0)
+        else loop(base, exp, 1.0)
+
+let sqrt: fn(float) -> float =
+    fn(n) ->
+        if n < 0.0 then panic("sqrt of negative number")
+        else
+            let rec newton: fn(float, float) -> float =
+                fn(x, approx) ->
+                    let better = (approx + x / approx) / 2.0
+                    if absf(better - approx) < 0.000001
+                    then better
+                    else newton(x, better)
+            newton(n, n / 2.0 + 1.0)
+
+let min: fn(T, T) -> T =
+    fn(a, b) ->
+        if a < b then a else b
+
+let max: fn(T, T) -> T =
+    fn(a, b) ->
+        if a > b then a else b
+
+let clamp: fn(T, T, T) -> T =
+    fn(x, lo, hi) ->
+        if x < lo then lo
+        else if x > hi then hi
+        else x
+
+let abs: fn(int) -> int =
+    fn(x) ->
+        if x < 0 then -x else x
+
+let absf: fn(float) -> float =
+    fn(x) ->
+        if x < 0.0 then -x else x
+
+let floor: fn(float) -> int =
+    fn(x) ->
+        _builtin_floor(x)
+
+let ceil: fn(float) -> int =
+    fn(x) ->
+        _builtin_ceil(x)
+
+let round: fn(float) -> int =
+    fn(x) ->
+        floor(x + 0.5)

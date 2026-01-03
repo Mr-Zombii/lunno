@@ -1,0 +1,7 @@
+import io
+import list
+
+let nums: list(float) = [1.0, 2.0, 3.0]
+let doubled: list(float) = map(fn(x: float) -> x * 2.0, nums)
+
+print(doubled) # [2.0, 4.0, 6.0]

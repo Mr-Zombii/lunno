@@ -1,0 +1,16 @@
+# io functions for Lunno
+
+let print: fn(T) -> T =
+    fn(x) ->
+        _builtin_print(x)
+        x
+
+let println: fn(T) -> T =
+    fn(x) ->
+        print(x)
+        _builtin_print("\n")
+        x
+
+let read_line: fn() -> string =
+    fn() ->
+        _builtin_read_line()

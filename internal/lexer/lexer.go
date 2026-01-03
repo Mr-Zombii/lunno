@@ -30,7 +30,10 @@ func Tokenize(source, filename string) ([]Token, error) {
 		token := lexer.Next()
 		tokens = append(tokens, token)
 		if token.Type == Illegal {
-			lexer.error("illegal token")
+			err := lexer.error("illegal token")
+			if err != nil {
+				return nil, err
+			}
 		}
 		if token.Type == EndOfFile {
 			break
@@ -211,7 +214,10 @@ func (l *Lexer) scanString() string {
 	for {
 		ch := l.peek()
 		if ch == 0 {
-			l.error("unterminated string literal")
+			err := l.error("unterminated string literal")
+			if err != nil {
+				return ""
+			}
 		}
 		if ch == quote {
 			l.advance()
@@ -234,21 +240,19 @@ func (l *Lexer) scanChar() string {
 	start := l.position
 	ch := l.advance()
 	if ch == 0 {
-		l.error("unterminated char literal")
+		err := l.error("unterminated char literal")
+		if err != nil {
+			return ""
+		}
 	}
 	if l.peek() != '\'' {
-		l.error("char literal must be 1 character")
+		err := l.error("char literal must be 1 character")
+		if err != nil {
+			return ""
+		}
 	}
 	l.advance()
 	return string(l.Source[start : l.position-1])
-}
-
-var multiCharOperators = map[string]TokenType{
-	"==": Equal,
-	"!=": NotEqual,
-	"<=": LessThanOrEqual,
-	">=": GreaterThanOrEqual,
-	"->": Arrow,
 }
 
 func (l *Lexer) matchMultiCharOperator() (Token, bool) {
@@ -266,14 +270,4 @@ func (l *Lexer) matchMultiCharOperator() (Token, bool) {
 		}
 	}
 	return Token{}, false
-}
-
-var singleCharTokens = map[byte]TokenType{
-	'(': LeftParen, ')': RightParen,
-	'[': LeftBracket, ']': RightBracket,
-	'{': LeftBrace, '}': RightBrace,
-	'+': Plus, '-': Minus,
-	'*': Asterisk, '/': Slash,
-	':': Colon, ',': Comma,
-	'=': Assign,
 }

@@ -14,7 +14,6 @@ type Token struct {
 
 const (
 	Illegal TokenType = iota
-	Comment
 
 	Identifier
 	Integer
@@ -103,6 +102,31 @@ var precedences = map[TokenType]int{
 	Slash:    5,
 }
 
+var multiCharOperators = map[string]TokenType{
+	"==": Equal,
+	"!=": NotEqual,
+	"<=": LessThanOrEqual,
+	">=": GreaterThanOrEqual,
+	"->": Arrow,
+}
+
+var singleCharTokens = map[byte]TokenType{
+	'(': LeftParen, ')': RightParen,
+	'[': LeftBracket, ']': RightBracket,
+	'{': LeftBrace, '}': RightBrace,
+	'+': Plus, '-': Minus,
+	'*': Asterisk, '/': Slash,
+	':': Colon, ',': Comma,
+	'=': Assign,
+}
+
 func (t Token) String() string {
 	return fmt.Sprintf("%d('%s') at %d:%d", t.Type, t.Lexeme, t.Line, t.Column)
+}
+
+func (typ TokenType) Precedence() int {
+	if precedence, ok := precedences[typ]; ok {
+		return precedence
+	}
+	return -1
 }

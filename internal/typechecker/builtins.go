@@ -1,10 +1,13 @@
 package typechecker
 
 func registerBuiltins(env *Env) {
-	env.set("_builtin_print", &FunctionType{
-		Parameters: []Type{
-			&TypeVar{ID: -1},
+	tv := &TypeVar{ID: 0}
+	s := &Scheme{
+		TypeVars: []int{tv.ID},
+		Type: &FunctionType{
+			Parameters: []Type{tv},
+			Return:     &UnitType{},
 		},
-		Return: &UnitType{},
-	})
+	}
+	env.set("_builtin_print", s)
 }

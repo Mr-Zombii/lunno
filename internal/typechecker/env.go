@@ -2,19 +2,19 @@ package typechecker
 
 type Env struct {
 	parent *Env
-	values map[string]Type
+	values map[string]*Scheme
 }
 
 func newEnv(parent *Env) *Env {
 	return &Env{
 		parent: parent,
-		values: map[string]Type{},
+		values: map[string]*Scheme{},
 	}
 }
 
-func (env *Env) get(name string) (Type, bool) {
-	if t, ok := env.values[name]; ok {
-		return t, true
+func (env *Env) get(name string) (*Scheme, bool) {
+	if s, ok := env.values[name]; ok {
+		return s, true
 	}
 	if env.parent != nil {
 		return env.parent.get(name)
@@ -22,6 +22,6 @@ func (env *Env) get(name string) (Type, bool) {
 	return nil, false
 }
 
-func (env *Env) set(name string, t Type) {
-	env.values[name] = t
+func (env *Env) set(name string, s *Scheme) {
+	env.values[name] = s
 }

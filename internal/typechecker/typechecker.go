@@ -31,11 +31,10 @@ func (checker *Checker) checkExpr(expr parser.Expression) Type {
 	case *parser.UnitLiteral:
 		return &UnitType{}
 	case *parser.Identifier:
-		if t, ok := checker.env.get(e.Name); ok {
-			return t
+		if s, ok := checker.env.get(e.Name); ok {
+			return instantiate(s, checker)
 		}
-		checker.errors = append(checker.errors,
-			fmt.Errorf("undefined identifier %s", e.Name))
+		checker.errors = append(checker.errors, fmt.Errorf("undefined identifier %s", e.Name))
 		return checker.freshVar()
 	case *parser.ListExpression:
 		elem := checker.freshVar()
@@ -60,7 +59,7 @@ func (checker *Checker) checkExpr(expr parser.Expression) Type {
 				pt = checker.freshVar()
 			}
 			params[i] = pt
-			fnEnv.set(p.Name.Lexeme, pt)
+			fnEnv.set(p.Name.Lexeme, generalize(checker.env, pt))
 		}
 		old := checker.env
 		checker.env = fnEnv
@@ -77,7 +76,8 @@ func (checker *Checker) checkExpr(expr parser.Expression) Type {
 		if err := unify(declType, valType, subst); err != nil {
 			checker.errors = append(checker.errors, err)
 		}
-		checker.env.set(e.Name.Lexeme, apply(declType, subst))
+		generalized := generalize(checker.env, apply(declType, subst))
+		checker.env.set(e.Name.Lexeme, generalized)
 		return &UnitType{}
 	case *parser.IfExpression:
 		cond := checker.checkExpr(e.Condition)

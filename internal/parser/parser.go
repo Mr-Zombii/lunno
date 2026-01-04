@@ -363,11 +363,36 @@ func (parser *Parser) parseFunctionLiteral() Expression {
 	for parser.cur().Type == lexer.Newline {
 		parser.advance()
 	}
-	body := parser.parseExpression(0)
-	if body == nil {
+	var exprs []Expression
+	first := parser.parseExpression(0)
+	if first == nil {
 		e := parser.error(fnToken, "expected function body expression")
 		parser.errors = append(parser.errors, e.Error())
 		return nil
+	}
+	exprs = append(exprs, first)
+	for parser.cur().Type == lexer.Newline {
+		parser.advance()
+
+		if parser.cur().Type == lexer.EndOfFile || parser.cur().Type == lexer.KwLet {
+			break
+		}
+
+		next := parser.parseExpression(0)
+		fmt.Println(parser.cur())
+		if next == nil {
+			break
+		}
+		exprs = append(exprs, next)
+	}
+	var body Expression
+	if len(exprs) == 1 {
+		body = exprs[0]
+	} else {
+		body = &BlockExpression{
+			Expressions: exprs,
+			Position:    fnToken,
+		}
 	}
 	return &FunctionLiteralExpression{
 		Parameters: parameters,

@@ -62,6 +62,14 @@ func (c *RunCommand) Run(args []string) {
 		}
 		os.Exit(1)
 	}
+	//typeErrors := typechecker.Check(program)
+	//if len(typeErrors) > 0 {
+	//	fmt.Printf("Type errors (%d):\n", len(typeErrors))
+	//	for _, err := range typeErrors {
+	//		fmt.Println(" ", err)
+	//	}
+	//	os.Exit(1)
+	//}
 	if *c.dumpAST {
 		fmt.Println(parser.DumpProgram(program))
 		return

@@ -1,7 +1,4 @@
-let map: fn(fn(T) -> U, list(T)) -> list(U) =
-    fn(f, lst) ->
-        let rec loop: fn(list(T), list(U)) -> list(U) =
-            fn(xs, acc) ->
-                if xs == [] then reverse(acc)
-                else loop(xs[1:], [f(xs[0])] + acc)
-        loop(lst, [])
+let print: fn(T) -> T =
+    fn(x) ->
+        _builtin_print(x)
+        x

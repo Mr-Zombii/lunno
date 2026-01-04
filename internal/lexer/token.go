@@ -3,16 +3,18 @@ package lexer
 import (
 	"fmt"
 	"lunno/internal/diagnostics"
+	"strings"
 )
 
 type TokenType int
 
 type Token struct {
-	Type   TokenType
-	Lexeme string
-	Line   int
-	Column int
-	File   string
+	Type        TokenType
+	Lexeme      string
+	Line        int
+	Column      int
+	Indentation int
+	File        string
 }
 
 const (
@@ -118,11 +120,51 @@ var singleCharTokens = map[byte]TokenType{
 	'+': Plus, '-': Minus,
 	'*': Asterisk, '/': Slash,
 	':': Colon, ',': Comma,
-	'=': Assign,
+	'=': Assign, '\n': Newline,
+}
+
+type bracePair struct {
+	ClosingChar   string
+	ClosingTT     TokenType
+	Name          string
+	ValidClosings map[TokenType]bool
+}
+
+var Braces = map[TokenType]*bracePair{
+	LeftBracket: {
+		ClosingChar: "]",
+		ClosingTT:   RightBracket,
+		Name:        "list",
+		ValidClosings: map[TokenType]bool{
+			RightBracket: true,
+			RightBrace:   false,
+			RightParen:   false,
+		},
+	},
+	LeftBrace: {
+		ClosingChar: "}",
+		ClosingTT:   RightBrace,
+		Name:        "tuple",
+		ValidClosings: map[TokenType]bool{
+			RightBracket: false,
+			RightBrace:   true,
+			RightParen:   false,
+		},
+	},
+	LeftParen: {
+		ClosingChar: ")",
+		ClosingTT:   RightParen,
+		Name:        "argument list",
+		ValidClosings: map[TokenType]bool{
+			RightBracket: false,
+			RightBrace:   false,
+			RightParen:   true,
+		},
+	},
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("%d('%s') at %d:%d", t.Type, t.Lexeme, t.Line, t.Column)
+	return fmt.Sprintf("%d('%s') at %d:%d", t.Type, strings.ReplaceAll(t.Lexeme, "\n", "\\n"), t.Line, t.Column)
 }
 
 func (t Token) Span() diagnostics.Span {

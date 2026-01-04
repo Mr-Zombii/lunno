@@ -3,10 +3,14 @@ package lexer
 import (
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 type Lexer struct {
 	Source   []byte
+	lines    []string
+	curLine  string
+	indent   int
 	position int
 	line     int
 	column   int
@@ -14,13 +18,31 @@ type Lexer struct {
 }
 
 func NewLexer(source, filename string) *Lexer {
+	sourceClean := strings.ReplaceAll(source, "\t", strings.Repeat(" ", 4))
+	lines := strings.Split(sourceClean, "\n")
+
+	curLine := ""
+	if len(lines) > 0 {
+		curLine = lines[0]
+	}
+
 	return &Lexer{
-		Source:   []byte(source),
+		Source:   []byte(sourceClean),
+		lines:    lines,
+		curLine:  curLine,
+		indent:   getIndent(curLine),
 		position: 0,
 		line:     1,
 		column:   1,
 		fileName: filename,
 	}
+}
+
+func getIndent(line string) int {
+	if len(line) == 0 {
+		return 0
+	}
+	return (utf8.RuneCountInString(line) - utf8.RuneCountInString(strings.TrimLeft(line, " "))) / 4
 }
 
 func Tokenize(source, filename string) (*Lexer, []Token, error) {
@@ -94,6 +116,8 @@ func (lexer *Lexer) advance() byte {
 	ch := lexer.Source[lexer.position]
 	lexer.position++
 	if ch == '\n' {
+		lexer.curLine = lexer.lines[lexer.line]
+		lexer.indent = getIndent(lexer.curLine)
 		lexer.line++
 		lexer.column = 1
 	} else {
@@ -104,11 +128,12 @@ func (lexer *Lexer) advance() byte {
 
 func (lexer *Lexer) makeToken(typ TokenType, lex string, line, column int) Token {
 	return Token{
-		Type:   typ,
-		Lexeme: lex,
-		Line:   line,
-		Column: column,
-		File:   lexer.fileName,
+		Type:        typ,
+		Lexeme:      lex,
+		Line:        line,
+		Indentation: lexer.indent,
+		Column:      column,
+		File:        lexer.fileName,
 	}
 }
 
@@ -120,7 +145,7 @@ func (lexer *Lexer) skipWhiteSpaceAndComments() {
 		}
 		if ch == '#' {
 			lexer.skipLineComment()
-		} else if ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' {
+		} else if ch == ' ' || ch == '\t' || ch == '\r' {
 			lexer.advance()
 		} else {
 			break

@@ -1,16 +1,29 @@
-# io functions for Lunno
+# IO Module for Lunno
 
+# Print a value to standard output.
+#
+# This function prints the value and then returns it unchanged.
+# Returning the value makes it easy to use `print` in expressions
+# and pipelines without breaking data flow.
+#
+# Example:
+#   print(42)
+#   # prints "42"
 let print: fn(T) -> T =
     fn(x) ->
         _builtin_print(x)
         x
 
+# Print a value followed by a newline.
+#
+# This is equivalent to calling `print(x)` and then printing
+# a newline character. The original value is returned unchanged.
+#
+# Example:
+#   println("hello")
+#   # prints "hello\n"
 let println: fn(T) -> T =
     fn(x) ->
         print(x)
         _builtin_print("\n")
         x
-
-let read_line: fn() -> string =
-    fn() ->
-        _builtin_read_line()

@@ -1,5 +1,10 @@
-# list functions for Lunno
+# List Module for Lunno
 
+# Apply a function to every element of a list,
+# producing a new list of results.
+#
+# Example:
+#   map(fn(x: int) -> x * 2, [1, 2, 3]) == [2, 4, 6]
 let map: fn(fn(T) -> U, list(T)) -> list(U) =
     fn(f, lst) ->
         let rec loop: fn(list(T), list(U)) -> list(U) =
@@ -8,6 +13,10 @@ let map: fn(fn(T) -> U, list(T)) -> list(U) =
                 else loop(xs[1:], [f(xs[0])] + acc)
         loop(lst, [])
 
+# Reverse a list.
+#
+# Example:
+#   reverse([1, 2, 3]) == [3, 2, 1]
 let rec reverse: fn(list(T)) -> list(T) =
     fn(lst) ->
         let rec loop: fn(list(T)) -> list(T) =
@@ -16,6 +25,10 @@ let rec reverse: fn(list(T)) -> list(T) =
                 else loop(xs[1:], [xs[0]] + acc)
         loop(lst, [])
 
+# Compute the number of elements in a list.
+#
+# Example:
+    length([1, 2, 3]) == 3
 let length: fn(list(T)) -> int =
     fn(lst) ->
         let rec loop: fn(list(T), int) -> int =
@@ -24,16 +37,30 @@ let length: fn(list(T)) -> int =
                 else loop(xs[1:], acc + 1)
         loop(lst, 0)
 
+# Return the first element of a list.
+#
+# NOTE:
+#   If the list is empty, this returns a placeholder value (0).
+#   In the future this should return an Option.
 let head: fn(list(T)) -> T =
     fn(lst) ->
         if lst == [] then 0 # placeholder
         else lst[0]
 
+# Return all elements of a list except the first.
+#
+# NOTE:
+#   If the list is empty, this returns a placeholder value (0).
 let tail: fn(list(T)) -> list(T) =
     fn(lst) ->
         if lst == [] then 0 # placeholder
         else lst[1:]
 
+# Left fold over a list.
+#
+# Applies the function from left to right:
+#   foldl(f, init, [x1, x2, x3])
+#   == f(f(f(init, x1), x2), x3)
 let foldl: fn(fn(U, T) -> U, U, list(T)) -> U =
     fn(f, init, lst) ->
         let rec loop: fn(list(T), U) -> U =
@@ -42,6 +69,13 @@ let foldl: fn(fn(U, T) -> U, U, list(T)) -> U =
                 else loop(xs[1:], f(acc, xs[0]))
         loop(lst, init)
 
+# Right fold over a list.
+#
+# Applies the function from right to left:
+#   foldr(f, init, [x1, x2, x3])
+#   == f(x1, f(x2, f(x3, init)))
+#
+# Implemented using foldl and reverse.
 let foldr: fn(fn(T, U) -> U, U, list(T)) -> U =
     fn(f, init, lst) ->
         foldl(
@@ -50,6 +84,12 @@ let foldr: fn(fn(T, U) -> U, U, list(T)) -> U =
             reverse(lst)
         )
 
+# Filter a list using a predicate function.
+#
+# Keeps only elements for which the predicate returns true.
+#
+# Example:
+#   filter(fn(x: bool) -> x > 0, [-1, 2, 0, 3]) == [2, 3]
 let filter: fn(fn(T) -> bool, list(T)) -> list(T) =
     fn(pred, lst) ->
         let rec loop: fn(list(T), list(T)) -> list(T) =
@@ -60,10 +100,18 @@ let filter: fn(fn(T) -> bool, list(T)) -> list(T) =
                     else loop(xs[1:], acc)
         loop(lst, [])
 
+# Append two lists together.
+#
+# Example:
+#   append([1, 2], [3, 4]) == [1, 2, 3, 4]
 let append: fn(list(T), list(T)) -> list(T) =
     fn(a, b) ->
         foldr(fn(x, acc) -> [x] + acc, b, a)
 
+# Concatenate a list of lists into a single list.
+#
+# Example:
+#   concat([[1, 2], [], [3]]) == [1, 2, 3]
 let concat: fn(list(list(T))) -> list(T) =
     fn(lst) ->
         foldr(append, [], lst)

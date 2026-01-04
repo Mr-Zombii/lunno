@@ -178,6 +178,7 @@ func (f *FunctionLiteralExpression) NodeType() string {
 type FunctionDeclarationExpression struct {
 	Name      lexer.Token
 	Recursive bool
+	Signature TypeNode
 	Function  *FunctionLiteralExpression
 	Position  lexer.Token
 }

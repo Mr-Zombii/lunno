@@ -91,7 +91,7 @@ func dumpExpr(expr Expression, indent string, last bool) string {
 		return out.String()
 	case *VariableDeclarationExpression:
 		line, next := node(indent, last,
-			fmt.Sprintf("VariableDeclaration %s rec=%t", n.Name.Lexeme, n.Recursive))
+			fmt.Sprintf("VariableDeclaration name=%s rec=%t", n.Name.Lexeme, n.Recursive))
 		var out strings.Builder
 		out.WriteString(line)
 		if n.Type != nil {
@@ -105,9 +105,14 @@ func dumpExpr(expr Expression, indent string, last bool) string {
 		return out.String()
 	case *FunctionDeclarationExpression:
 		line, next := node(indent, last,
-			fmt.Sprintf("FunctionDeclaration %s rec=%t", n.Name.Lexeme, n.Recursive))
+			fmt.Sprintf("FunctionDeclaration name=%s rec=%t", n.Name.Lexeme, n.Recursive))
 		var out strings.Builder
 		out.WriteString(line)
+		if n.Signature != nil {
+			tLine, tNext := node(next, true, "TypeSignature")
+			out.WriteString(tLine)
+			out.WriteString(dumpType(n.Signature, tNext, true))
+		}
 		fLine, fNext := node(next, true, "Function")
 		out.WriteString(fLine)
 		out.WriteString(dumpExpr(n.Function, fNext, true))

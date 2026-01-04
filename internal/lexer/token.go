@@ -14,6 +14,7 @@ type Token struct {
 
 const (
 	Illegal TokenType = iota
+	Newline
 
 	Identifier
 	Integer

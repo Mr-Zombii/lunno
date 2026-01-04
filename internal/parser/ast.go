@@ -232,7 +232,7 @@ func (s *SliceExpression) NodeType() string {
 }
 
 type SimpleType struct {
-	Name string // int, float, T
+	Name string
 	Pos  lexer.Token
 }
 

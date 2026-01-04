@@ -18,7 +18,7 @@ func loadAndParse(filename string) *parser.Program {
 		return nil
 	}
 
-	program, errs := parser.ParseProgram(tokens)
+	program, errs := parser.ParseProgram(tokens, source)
 	if len(errs) > 0 {
 		fmt.Println("Parse errors:")
 		for _, e := range errs {

@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"lunno/internal/lexer"
 	"strconv"
 )
@@ -9,18 +10,20 @@ type Parser struct {
 	tokens   []lexer.Token
 	position int
 	errors   []string
+	source   []byte
 }
 
-func NewParser(tokens []lexer.Token) *Parser {
+func NewParser(tokens []lexer.Token, source []byte) *Parser {
 	return &Parser{
 		tokens:   tokens,
 		position: 0,
 		errors:   []string{},
+		source:   source,
 	}
 }
 
-func ParseProgram(tokens []lexer.Token) (*Program, []string) {
-	parser := NewParser(tokens)
+func ParseProgram(tokens []lexer.Token, source []byte) (*Program, []string) {
+	parser := NewParser(tokens, source)
 	program := &Program{Expressions: []Expression{}}
 	for parser.cur().Type != lexer.EndOfFile {
 		expression := parser.parseExpression(0)
@@ -50,6 +53,11 @@ func (parser *Parser) parseExpression(minPrecedence int) Expression {
 		}
 		parser.advance()
 		right := parser.parseExpression(precedence + 1)
+		if right == nil {
+			err := parser.error(op, "expected expression on right-hand side of operator")
+			parser.errors = append(parser.errors, err.Error())
+			return left
+		}
 		left = &InfixExpression{
 			Left:     left,
 			Operator: op,
@@ -65,10 +73,17 @@ func (parser *Parser) parseExpressionList(args []Expression) []Expression {
 		arg := parser.parseExpression(0)
 		if arg != nil {
 			args = append(args, arg)
+		} else {
+			e := parser.error(parser.cur(), "invalid expression in list")
+			parser.errors = append(parser.errors, e.Error())
+			parser.advance()
+			continue
 		}
 		if parser.cur().Type == lexer.Comma {
 			parser.advance()
-		} else {
+		} else if parser.cur().Type == lexer.RightBracket {
+			e := parser.error(parser.cur(), "expected ',' or ']' in expression list")
+			parser.errors = append(parser.errors, e.Error())
 			break
 		}
 	}
@@ -77,18 +92,31 @@ func (parser *Parser) parseExpressionList(args []Expression) []Expression {
 
 func (parser *Parser) parsePrimary() Expression {
 	token := parser.cur()
+	if token.Type == lexer.EndOfFile {
+		return nil
+	}
 	var expr Expression
 	switch token.Type {
 	case lexer.Integer:
 		parser.advance()
-		value, _ := strconv.ParseInt(token.Lexeme, 10, 64)
+		value, err := strconv.ParseInt(token.Lexeme, 10, 64)
+		if err != nil {
+			e := parser.error(token, "invalid integer literal")
+			parser.errors = append(parser.errors, e.Error())
+			return nil
+		}
 		expr = &IntegerLiteral{
 			Value:    value,
 			Raw:      token.Lexeme,
 			Position: token}
 	case lexer.Float:
 		parser.advance()
-		value, _ := strconv.ParseFloat(token.Lexeme, 64)
+		value, err := strconv.ParseFloat(token.Lexeme, 64)
+		if err != nil {
+			e := parser.error(token, "invalid float literal")
+			parser.errors = append(parser.errors, e.Error())
+			return nil
+		}
 		expr = &FloatLiteral{
 			Value:    value,
 			Raw:      token.Lexeme,
@@ -115,13 +143,14 @@ func (parser *Parser) parsePrimary() Expression {
 	case lexer.LeftBracket:
 		parser.advance()
 		var elements []Expression
-		parser.parseExpressionList(elements)
+		elements = parser.parseExpressionList(elements)
 		parser.expect(lexer.RightBracket)
 		expr = &ListExpression{
 			Elements: elements,
 			Position: token}
 	default:
-		return nil
+		e := parser.error(token, fmt.Sprintf("unexpected token %q", token.Lexeme))
+		parser.errors = append(parser.errors, e.Error())
 	}
 	return parser.parsePostfix(expr)
 }
@@ -133,8 +162,13 @@ func (parser *Parser) parsePostfix(expr Expression) Expression {
 			callToken := parser.cur()
 			parser.advance()
 			var args []Expression
-			parser.parseExpressionList(args)
-			parser.expect(lexer.RightParen)
+			args = parser.parseExpressionList(args)
+			if parser.cur().Type != lexer.RightParen {
+				e := parser.error(parser.cur(), "expected ')' after function call")
+				parser.errors = append(parser.errors, e.Error())
+			} else {
+				parser.advance()
+			}
 			expr = &CallExpression{
 				Callee:    expr,
 				Arguments: args,
@@ -151,7 +185,12 @@ func (parser *Parser) parsePostfix(expr Expression) Expression {
 				if parser.cur().Type != lexer.RightBracket {
 					endExpr = parser.parsePrimary()
 				}
-				parser.expect(lexer.RightBracket)
+				if parser.cur().Type != lexer.RightBracket {
+					e := parser.error(parser.cur(), "expected ']' to close slice expression")
+					parser.errors = append(parser.errors, e.Error())
+				} else {
+					parser.advance()
+				}
 				expr = &SliceExpression{
 					Target:   expr,
 					Start:    startExpr,
@@ -159,7 +198,12 @@ func (parser *Parser) parsePostfix(expr Expression) Expression {
 					Position: startToken,
 				}
 			} else {
-				parser.expect(lexer.RightBracket)
+				if parser.cur().Type != lexer.RightBracket {
+					e := parser.error(parser.cur(), "expected ']' after index expression")
+					parser.errors = append(parser.errors, e.Error())
+				} else {
+					parser.advance()
+				}
 				expr = &IndexExpression{
 					Target:   expr,
 					Index:    startExpr,
@@ -182,7 +226,7 @@ func (parser *Parser) parseSliceExpr() Expression {
 }
 
 func (parser *Parser) parseLetExpression() Expression {
-	token := parser.cur()
+	letToken := parser.cur()
 	parser.advance()
 	recursive := false
 	if parser.cur().Type == lexer.KwRec {
@@ -191,25 +235,36 @@ func (parser *Parser) parseLetExpression() Expression {
 	}
 	name := parser.expect(lexer.Identifier)
 	if name.Type != lexer.Identifier {
+		e := parser.error(name, "expected identifier after 'let'")
+		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
 	if parser.cur().Type != lexer.Colon {
+		e := parser.error(parser.cur(), "expected ':' after identifier in let declaration")
+		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
 	parser.advance()
 	typ := parser.parseType()
 	if typ == nil {
+		e := parser.error(parser.cur(), "expected type in let declaration")
+		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
 	if parser.cur().Type != lexer.Assign {
+		e := parser.error(parser.cur(), "expected '=' after type in let declaration")
+		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
 	parser.advance()
+	assignToken := parser.cur()
 	for parser.cur().Type == lexer.Newline {
 		parser.advance()
 	}
 	value := parser.parseExpression(0)
 	if value == nil {
+		e := parser.error(assignToken, "expected value in let declaration")
+		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
 	if fn, ok := value.(*FunctionLiteralExpression); ok {
@@ -218,7 +273,7 @@ func (parser *Parser) parseLetExpression() Expression {
 			Recursive: recursive,
 			Signature: typ,
 			Function:  fn,
-			Position:  token,
+			Position:  letToken,
 		}
 	}
 	return &VariableDeclarationExpression{
@@ -226,7 +281,7 @@ func (parser *Parser) parseLetExpression() Expression {
 		Type:      typ,
 		Value:     value,
 		Recursive: recursive,
-		Position:  token,
+		Position:  letToken,
 	}
 }
 
@@ -237,6 +292,11 @@ func (parser *Parser) parseFunctionLiteral() Expression {
 	parser.expect(lexer.LeftParen)
 	for parser.cur().Type != lexer.RightParen && parser.cur().Type != lexer.EndOfFile {
 		paramName := parser.expect(lexer.Identifier)
+		if paramName.Type != lexer.Identifier {
+			e := parser.error(parser.cur(), "expected parameter name")
+			parser.errors = append(parser.errors, e.Error())
+			return nil
+		}
 		var paramType TypeNode
 		if parser.cur().Type == lexer.Colon {
 			parser.advance()
@@ -262,7 +322,8 @@ func (parser *Parser) parseFunctionLiteral() Expression {
 	}
 	body := parser.parseExpression(0)
 	if body == nil {
-		// parser.errors = append(parser.errors, "expected function body expression")
+		e := parser.error(fnToken, "expected function body expression")
+		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
 	return &FunctionLiteralExpression{
@@ -277,13 +338,15 @@ func (parser *Parser) parseIfExpression() Expression {
 	parser.advance()
 	condition := parser.parseExpression(0)
 	if parser.cur().Type != lexer.KwThen {
-		// parser.errors = append(parser.errors, "expected 'then' after if condition")
+		e := parser.error(parser.cur(), "expected 'then' after if condition")
+		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
 	parser.advance()
 	thenBranch := parser.parseExpression(0)
 	if parser.cur().Type != lexer.KwElse {
-		// parser.errors = append(parser.errors, "expected 'else' after then branch")
+		e := parser.error(parser.cur(), "expected 'else' after then branch")
+		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
 	parser.advance()
@@ -328,16 +391,17 @@ func (parser *Parser) parseType() TypeNode {
 		return &ListType{
 			Element:  elemType,
 			Position: token}
-	case lexer.Identifier:
+	case lexer.Identifier, lexer.KwInt, lexer.KwFloat, lexer.KwBool, lexer.KwString, lexer.KwChar:
 		parser.advance()
 		return &SimpleType{
 			Name: token.Lexeme,
 			Pos:  token}
+	case lexer.EndOfFile:
+		return nil
 	default:
-		parser.advance()
-		return &SimpleType{
-			Name: token.Lexeme,
-			Pos:  token}
+		e := parser.error(token, fmt.Sprintf("unexpected token in type: %q", token.Lexeme))
+		parser.errors = append(parser.errors, e.Error())
+		return nil
 	}
 }
 
@@ -361,8 +425,9 @@ func (parser *Parser) advance() lexer.Token {
 func (parser *Parser) expect(typ lexer.TokenType) lexer.Token {
 	token := parser.cur()
 	if token.Type != typ {
-		//parser.error(token, fmt.Sprintf("expected %q, got %q", typ, token.Type))
-		return lexer.Token{}
+		err := parser.error(token, fmt.Sprintf("expected %q, got %q", typ, token.Type))
+		parser.errors = append(parser.errors, err.Error())
+		return token
 	}
 	parser.advance()
 	return token

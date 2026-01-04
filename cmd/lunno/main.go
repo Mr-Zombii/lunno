@@ -1,35 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"lunno/internal/lexer"
-	"lunno/internal/parser"
+	"lunno/cmd/lunno/cli"
 	"os"
 )
 
-func loadAndParse(filename string) *parser.Program {
-	source, err := os.ReadFile(filename)
-	if err != nil {
-		return nil
-	}
-
-	lx, tokens, err := lexer.Tokenize(string(source), filename)
-	if err != nil {
-		return nil
-	}
-
-	program, errs := parser.ParseProgram(tokens, lx)
-	if len(errs) > 0 {
-		fmt.Println("Parse errors:")
-		for _, e := range errs {
-			fmt.Println("  ", e)
-		}
-		return nil
-	}
-	fmt.Println(parser.DumpProgram(program))
-	return program
-}
-
 func main() {
-	loadAndParse(os.Args[1])
+	cli.Execute(os.Args[1:])
 }

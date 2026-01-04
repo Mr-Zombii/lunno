@@ -84,11 +84,9 @@ try {
 catch {
     $GitCommit = "unknown"
 }
-$BuildTime = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ" -AsUTC)
 
 $LdFlags = "-X 'lunno/internal/version.Version=$FullVersion'
-            -X 'lunno/internal/version.GitCommit=$GitCommit'
-            -X 'lunno/internal/version.BuildTime=$BuildTime'"
+            -X 'lunno/internal/version.GitCommit=$GitCommit'"
 
 function Build-Target {
     param(

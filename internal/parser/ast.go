@@ -166,7 +166,6 @@ type Parameter struct {
 type FunctionLiteralExpression struct {
 	Parameters []Parameter
 	Body       Expression
-	ReturnType TypeNode
 	Position   lexer.Token
 }
 
@@ -218,6 +217,18 @@ type ImportExpression struct {
 func (i *ImportExpression) exprNode() {}
 func (i *ImportExpression) NodeType() string {
 	return "ImportExpression"
+}
+
+type SliceExpression struct {
+	Target   Expression
+	Start    Expression
+	End      Expression
+	Position lexer.Token
+}
+
+func (s *SliceExpression) exprNode() {}
+func (s *SliceExpression) NodeType() string {
+	return "SliceExpression"
 }
 
 type SimpleType struct {

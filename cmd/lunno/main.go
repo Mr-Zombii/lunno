@@ -26,9 +26,7 @@ func loadAndParse(filename string) *parser.Program {
 		}
 		return nil
 	}
-	for _, expression := range program.Expressions {
-		fmt.Println(parser.Dump(expression))
-	}
+	fmt.Println(parser.DumpProgram(program))
 	return program
 }
 

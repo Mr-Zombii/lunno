@@ -1,3 +1,7 @@
-import io
-
-let x: list(T) = [1, 2, 3]
+let map: fn(fn(T) -> U, list(T)) -> list(U) =
+    fn(f, lst) ->
+        let rec loop: fn(list(T), list(U)) -> list(U) =
+            fn(xs, acc) ->
+                if xs == [] then reverse(acc)
+                else loop(xs[1:], [f(xs[0])] + acc)
+        loop(lst, [])

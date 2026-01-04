@@ -5,10 +5,6 @@ import (
 	"strings"
 )
 
-func Dump(expr Expression) string {
-	return dumpExpr(expr, "", true)
-}
-
 func DumpProgram(p *Program) string {
 	var out strings.Builder
 	for i, e := range p.Expressions {
@@ -132,11 +128,6 @@ func dumpExpr(expr Expression, indent string, last bool) string {
 				}
 			}
 		}
-		if n.ReturnType != nil {
-			rLine, rNext := node(next, false, "ReturnType")
-			out.WriteString(rLine)
-			out.WriteString(dumpType(n.ReturnType, rNext, true))
-		}
 		bLine, bNext := node(next, true, "Body")
 		out.WriteString(bLine)
 		out.WriteString(dumpExpr(n.Body, bNext, true))
@@ -168,6 +159,28 @@ func dumpExpr(expr Expression, indent string, last bool) string {
 	case *ImportExpression:
 		line, _ := node(indent, last, "Import "+n.Module)
 		return line
+	case *SliceExpression:
+		line, next := node(indent, last, "SliceExpression")
+		var out strings.Builder
+		out.WriteString(line)
+		tLine, tNext := node(next, false, "Target")
+		out.WriteString(tLine)
+		out.WriteString(dumpExpr(n.Target, tNext, true))
+		sLine, sNext := node(next, false, "Start")
+		if n.Start != nil {
+			out.WriteString(sLine)
+			out.WriteString(dumpExpr(n.Start, sNext, true))
+		} else {
+			out.WriteString(sLine + tNext + "<nil>\n")
+		}
+		eLine, eNext := node(next, true, "End")
+		if n.End != nil {
+			out.WriteString(eLine)
+			out.WriteString(dumpExpr(n.End, eNext, true))
+		} else {
+			out.WriteString(eLine + eNext + "<nil>\n")
+		}
+		return out.String()
 	default:
 		line, _ := node(indent, last, fmt.Sprintf("<unknown %T>", n))
 		return line

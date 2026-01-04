@@ -60,6 +60,21 @@ func (parser *Parser) parseExpression(minPrecedence int) Expression {
 	return left
 }
 
+func (parser *Parser) parseExpressionList(args []Expression) []Expression {
+	for parser.cur().Type != lexer.RightBracket && parser.cur().Type != lexer.EndOfFile {
+		arg := parser.parseExpression(0)
+		if arg != nil {
+			args = append(args, arg)
+		}
+		if parser.cur().Type == lexer.Comma {
+			parser.advance()
+		} else {
+			break
+		}
+	}
+	return args
+}
+
 func (parser *Parser) parsePrimary() Expression {
 	token := parser.cur()
 	var expr Expression
@@ -100,17 +115,7 @@ func (parser *Parser) parsePrimary() Expression {
 	case lexer.LeftBracket:
 		parser.advance()
 		var elements []Expression
-		for parser.cur().Type != lexer.RightBracket && parser.cur().Type != lexer.EndOfFile {
-			elem := parser.parseExpression(0)
-			if elem != nil {
-				elements = append(elements, elem)
-			}
-			if parser.cur().Type == lexer.Comma {
-				parser.advance()
-			} else {
-				break
-			}
-		}
+		parser.parseExpressionList(elements)
 		parser.expect(lexer.RightBracket)
 		expr = &ListExpression{
 			Elements: elements,
@@ -128,34 +133,51 @@ func (parser *Parser) parsePostfix(expr Expression) Expression {
 			callToken := parser.cur()
 			parser.advance()
 			var args []Expression
-			for parser.cur().Type != lexer.RightParen && parser.cur().Type != lexer.EndOfFile {
-				arg := parser.parseExpression(0)
-				if arg != nil {
-					args = append(args, arg)
-				}
-				if parser.cur().Type == lexer.Comma {
-					parser.advance()
-				} else {
-					break
-				}
-			}
+			parser.parseExpressionList(args)
 			parser.expect(lexer.RightParen)
 			expr = &CallExpression{
 				Callee:    expr,
 				Arguments: args,
 				Position:  callToken}
 		case lexer.LeftBracket:
-			indexToken := parser.cur()
+			startToken := parser.cur()
 			parser.advance()
-			idx := parser.parseExpression(0)
-			parser.expect(lexer.RightBracket)
-			expr = &IndexExpression{
-				Target:   expr,
-				Index:    idx,
-				Position: indexToken}
+			var startExpr, endExpr Expression
+			if parser.cur().Type != lexer.Colon && parser.cur().Type != lexer.RightBracket {
+				startExpr = parser.parsePrimary()
+			}
+			if parser.cur().Type == lexer.Colon {
+				parser.advance()
+				if parser.cur().Type != lexer.RightBracket {
+					endExpr = parser.parsePrimary()
+				}
+				parser.expect(lexer.RightBracket)
+				expr = &SliceExpression{
+					Target:   expr,
+					Start:    startExpr,
+					End:      endExpr,
+					Position: startToken,
+				}
+			} else {
+				parser.expect(lexer.RightBracket)
+				expr = &IndexExpression{
+					Target:   expr,
+					Index:    startExpr,
+					Position: startToken,
+				}
+			}
 		default:
 			return expr
 		}
+	}
+}
+
+func (parser *Parser) parseSliceExpr() Expression {
+	switch parser.cur().Type {
+	case lexer.RightBracket, lexer.Colon:
+		return nil
+	default:
+		return parser.parsePrimary()
 	}
 }
 
@@ -232,10 +254,8 @@ func (parser *Parser) parseFunctionLiteral() Expression {
 		}
 	}
 	parser.expect(lexer.RightParen)
-	var returnType TypeNode
 	if parser.cur().Type == lexer.Arrow {
 		parser.advance()
-		returnType = parser.parseType()
 	}
 	for parser.cur().Type == lexer.Newline {
 		parser.advance()
@@ -247,7 +267,6 @@ func (parser *Parser) parseFunctionLiteral() Expression {
 	}
 	return &FunctionLiteralExpression{
 		Parameters: parameters,
-		ReturnType: returnType,
 		Body:       body,
 		Position:   fnToken,
 	}
@@ -301,10 +320,11 @@ func (parser *Parser) parseType() TypeNode {
 			Parameters: params,
 			Return:     returnType,
 			Position:   token}
-	case lexer.LeftBracket:
+	case lexer.KwList:
 		parser.advance()
+		parser.expect(lexer.LeftParen)
 		elemType := parser.parseType()
-		parser.expect(lexer.RightBracket)
+		parser.expect(lexer.RightParen)
 		return &ListType{
 			Element:  elemType,
 			Position: token}

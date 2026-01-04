@@ -1,6 +1,9 @@
 package lexer
 
-import "fmt"
+import (
+	"fmt"
+	"lunno/internal/diagnostics"
+)
 
 type TokenType int
 
@@ -22,9 +25,6 @@ const (
 	String
 	Char
 	Bool
-	Tuple
-	List
-	Nil
 
 	LeftParen
 	RightParen
@@ -63,7 +63,7 @@ const (
 	KwChar
 	KwBool
 	KwList
-	KwNil
+	KwUnit
 
 	EndOfFile
 )
@@ -82,9 +82,9 @@ var keywords = map[string]TokenType{
 	"char":   KwChar,
 	"bool":   KwBool,
 	"list":   KwList,
-	"nil":    KwNil,
-	"false":  KwBool,
-	"true":   KwBool,
+	"unit":   KwUnit,
+	"true":   Bool,
+	"false":  Bool,
 }
 
 var precedences = map[TokenType]int{
@@ -123,6 +123,14 @@ var singleCharTokens = map[byte]TokenType{
 
 func (t Token) String() string {
 	return fmt.Sprintf("%d('%s') at %d:%d", t.Type, t.Lexeme, t.Line, t.Column)
+}
+
+func (t Token) Span() diagnostics.Span {
+	return diagnostics.Span{
+		File:   t.File,
+		Line:   t.Line,
+		Column: t.Column,
+	}
 }
 
 func (typ TokenType) Precedence() int {

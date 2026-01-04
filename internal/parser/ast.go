@@ -89,6 +89,15 @@ func (b *BooleanLiteral) NodeType() string {
 	return "BooleanLiteral"
 }
 
+type UnitLiteral struct {
+	Position lexer.Token
+}
+
+func (u *UnitLiteral) exprNode() {}
+func (u *UnitLiteral) NodeType() string {
+	return "UnitLiteral"
+}
+
 type ListExpression struct {
 	Elements []Expression
 	Position lexer.Token

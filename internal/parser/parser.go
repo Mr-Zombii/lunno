@@ -10,20 +10,20 @@ type Parser struct {
 	tokens   []lexer.Token
 	position int
 	errors   []string
-	source   []byte
+	lexer    *lexer.Lexer
 }
 
-func NewParser(tokens []lexer.Token, source []byte) *Parser {
+func NewParser(tokens []lexer.Token, lexer *lexer.Lexer) *Parser {
 	return &Parser{
 		tokens:   tokens,
 		position: 0,
 		errors:   []string{},
-		source:   source,
+		lexer:    lexer,
 	}
 }
 
-func ParseProgram(tokens []lexer.Token, source []byte) (*Program, []string) {
-	parser := NewParser(tokens, source)
+func ParseProgram(tokens []lexer.Token, lx *lexer.Lexer) (*Program, []string) {
+	parser := NewParser(tokens, lx)
 	program := &Program{Expressions: []Expression{}}
 	for parser.cur().Type != lexer.EndOfFile {
 		expression := parser.parseExpression(0)
@@ -69,11 +69,23 @@ func (parser *Parser) parseExpression(minPrecedence int) Expression {
 }
 
 func (parser *Parser) parseExpressionList(args []Expression) []Expression {
-	for parser.cur().Type != lexer.RightBracket && parser.cur().Type != lexer.EndOfFile {
+	isList := parser.tokens[parser.position-1].Type == lexer.LeftBracket
+	isArgs := parser.tokens[parser.position-1].Type == lexer.LeftParen
+	if !isArgs && !isList {
+		panic("You tried calling this before consuming a '(' or '['")
+	}
+	for parser.cur().Type != lexer.RightBracket && parser.cur().Type != lexer.RightParen && parser.cur().Type != lexer.EndOfFile {
 		arg := parser.parseExpression(0)
 		if arg != nil {
 			args = append(args, arg)
 		} else {
+			err := "invalid expression in "
+			if isList {
+				err += "list"
+			}
+			if isArgs {
+				err += "argument list"
+			}
 			e := parser.error(parser.cur(), "invalid expression in list")
 			parser.errors = append(parser.errors, e.Error())
 			parser.advance()
@@ -81,8 +93,8 @@ func (parser *Parser) parseExpressionList(args []Expression) []Expression {
 		}
 		if parser.cur().Type == lexer.Comma {
 			parser.advance()
-		} else if parser.cur().Type == lexer.RightBracket {
-			e := parser.error(parser.cur(), "expected ',' or ']' in expression list")
+		} else if (isList && parser.cur().Type != lexer.RightBracket) || (isArgs && parser.cur().Type != lexer.RightParen) {
+			e := parser.error(parser.cur(), "expected ',' or ']' or ')' in expression list")
 			parser.errors = append(parser.errors, e.Error())
 			break
 		}
@@ -121,8 +133,34 @@ func (parser *Parser) parsePrimary() Expression {
 			Value:    value,
 			Raw:      token.Lexeme,
 			Position: token}
+	case lexer.Char:
+		token := parser.expect(lexer.Char)
+		expr = &CharacterLiteral{
+			Value:    token.Lexeme[0],
+			Raw:      token.Lexeme,
+			Position: token,
+		}
+	case lexer.String:
+		token := parser.expect(lexer.String)
+		expr = &StringLiteral{
+			Value:    token.Lexeme,
+			Position: token,
+		}
+	case lexer.Bool:
+		token := parser.expect(lexer.Bool)
+		expr = &BooleanLiteral{
+			Value:    token.Lexeme == "true",
+			Position: token,
+		}
 	case lexer.LeftParen:
 		parser.advance()
+		if parser.cur().Type == lexer.RightParen {
+			token := parser.cur()
+			parser.advance()
+			return &UnitLiteral{
+				Position: token,
+			}
+		}
 		expr = parser.parseExpression(0)
 		parser.expect(lexer.RightParen)
 	case lexer.Identifier:
@@ -130,6 +168,11 @@ func (parser *Parser) parsePrimary() Expression {
 		expr = &Identifier{
 			Name:     token.Lexeme,
 			Position: token}
+	case lexer.KwUnit:
+		token := parser.expect(lexer.KwUnit)
+		expr = &UnitLiteral{
+			Position: token,
+		}
 	case lexer.KwFn:
 		expr = parser.parseFunctionLiteral()
 	case lexer.KwIf:
@@ -391,7 +434,7 @@ func (parser *Parser) parseType() TypeNode {
 		return &ListType{
 			Element:  elemType,
 			Position: token}
-	case lexer.Identifier, lexer.KwInt, lexer.KwFloat, lexer.KwBool, lexer.KwString, lexer.KwChar:
+	case lexer.Identifier, lexer.KwInt, lexer.KwFloat, lexer.KwBool, lexer.KwString, lexer.KwChar, lexer.KwUnit:
 		parser.advance()
 		return &SimpleType{
 			Name: token.Lexeme,

@@ -43,6 +43,10 @@ func dumpExpr(expr Expression, indent string, last bool) string {
 	case *BooleanLiteral:
 		line, _ := node(indent, last, fmt.Sprintf("BooleanLiteral %t", n.Value))
 		return line
+	case *UnitLiteral:
+		lex := "()"
+		line, _ := node(indent, last, fmt.Sprintf("UnitLiteral %s", lex))
+		return line
 	case *ListExpression:
 		line, next := node(indent, last, "ListExpression")
 		var out strings.Builder

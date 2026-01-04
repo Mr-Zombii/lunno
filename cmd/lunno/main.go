@@ -13,12 +13,12 @@ func loadAndParse(filename string) *parser.Program {
 		return nil
 	}
 
-	tokens, err := lexer.Tokenize(string(source), filename)
+	lx, tokens, err := lexer.Tokenize(string(source), filename)
 	if err != nil {
 		return nil
 	}
 
-	program, errs := parser.ParseProgram(tokens, source)
+	program, errs := parser.ParseProgram(tokens, lx)
 	if len(errs) > 0 {
 		fmt.Println("Parse errors:")
 		for _, e := range errs {

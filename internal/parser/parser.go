@@ -37,6 +37,9 @@ func ParseProgram(tokens []lexer.Token, lx *lexer.Lexer) (*Program, []string) {
 }
 
 func (parser *Parser) parseExpression(minPrecedence int) Expression {
+	for parser.cur().Type == lexer.Newline {
+		parser.advance()
+	}
 	token := parser.cur()
 	if token.Type == lexer.KwLet {
 		return parser.parseLetExpression()
@@ -65,36 +68,39 @@ func (parser *Parser) parseExpression(minPrecedence int) Expression {
 			Position: op,
 		}
 	}
+	for parser.cur().Type == lexer.Newline {
+		parser.advance()
+	}
 	return left
 }
 
 func (parser *Parser) parseExpressionList(args []Expression) []Expression {
-	isList := parser.tokens[parser.position-1].Type == lexer.LeftBracket
-	isArgs := parser.tokens[parser.position-1].Type == lexer.LeftParen
-	if !isArgs && !isList {
-		panic("You tried calling this before consuming a '(' or '['")
+	tk := parser.prev()
+	bracePair, valid := lexer.Braces[tk.Type]
+	if !valid {
+		parser.errors = append(parser.errors, fmt.Sprintf("Expected '(', '[', or '{', not %v", tk))
 	}
-	for parser.cur().Type != lexer.RightBracket && parser.cur().Type != lexer.RightParen && parser.cur().Type != lexer.EndOfFile {
+	if isValidClosing, isClosing := bracePair.ValidClosings[parser.cur().Type]; isClosing {
+		if !isValidClosing {
+			parser.errors = append(parser.errors, fmt.Sprintf("Expected '%v', not %v", bracePair.ClosingChar, tk))
+		}
+		return args
+	}
+
+	for parser.cur().Type != bracePair.ClosingTT && parser.cur().Type != lexer.EndOfFile {
 		arg := parser.parseExpression(0)
 		if arg != nil {
 			args = append(args, arg)
 		} else {
-			err := "invalid expression in "
-			if isList {
-				err += "list"
-			}
-			if isArgs {
-				err += "argument list"
-			}
-			e := parser.error(parser.cur(), "invalid expression in list")
+			e := parser.error(parser.cur(), "invalid expression in "+bracePair.Name)
 			parser.errors = append(parser.errors, e.Error())
 			parser.advance()
 			continue
 		}
 		if parser.cur().Type == lexer.Comma {
 			parser.advance()
-		} else if (isList && parser.cur().Type != lexer.RightBracket) || (isArgs && parser.cur().Type != lexer.RightParen) {
-			e := parser.error(parser.cur(), "expected ',' or ']' or ')' in expression list")
+		} else if parser.cur().Type != bracePair.ClosingTT {
+			e := parser.error(parser.cur(), fmt.Sprintf("expected ',' or '%v' in %v", bracePair.ClosingChar, bracePair.Name))
 			parser.errors = append(parser.errors, e.Error())
 			break
 		}
@@ -301,9 +307,6 @@ func (parser *Parser) parseLetExpression() Expression {
 	}
 	parser.advance()
 	assignToken := parser.cur()
-	for parser.cur().Type == lexer.Newline {
-		parser.advance()
-	}
 	value := parser.parseExpression(0)
 	if value == nil {
 		e := parser.error(assignToken, "expected value in let declaration")
@@ -330,6 +333,7 @@ func (parser *Parser) parseLetExpression() Expression {
 
 func (parser *Parser) parseFunctionLiteral() Expression {
 	fnToken := parser.cur()
+	bodyIndent := fnToken.Indentation + 1
 	parser.advance()
 	var parameters []Parameter
 	parser.expect(lexer.LeftParen)
@@ -371,15 +375,12 @@ func (parser *Parser) parseFunctionLiteral() Expression {
 		return nil
 	}
 	exprs = append(exprs, first)
-	for parser.cur().Type == lexer.Newline {
-		parser.advance()
-
+	for parser.cur().Indentation == bodyIndent && parser.prev().Type == lexer.Newline {
 		if parser.cur().Type == lexer.EndOfFile || parser.cur().Type == lexer.KwLet {
 			break
 		}
 
 		next := parser.parseExpression(0)
-		fmt.Println(parser.cur())
 		if next == nil {
 			break
 		}
@@ -482,6 +483,13 @@ func (parser *Parser) cur() lexer.Token {
 			Column: 0}
 	}
 	return parser.tokens[parser.position]
+}
+
+func (parser *Parser) prev() lexer.Token {
+	if parser.position != 0 {
+		return parser.tokens[parser.position-1]
+	}
+	return lexer.Token{}
 }
 
 func (parser *Parser) advance() lexer.Token {

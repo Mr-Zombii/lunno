@@ -378,6 +378,7 @@ func (parser *Parser) parseBlock(token lexer.Token, name string) Expression {
 	targetIndention := token.Indentation + 1
 
 	var exprs []Expression
+	firstExprTk := parser.cur()
 	first := parser.parseExpression(0)
 	if first == nil {
 		e := parser.error(token, "expected "+name+" expression")
@@ -385,16 +386,18 @@ func (parser *Parser) parseBlock(token lexer.Token, name string) Expression {
 		return nil
 	}
 	exprs = append(exprs, first)
-	for parser.cur().Indentation == targetIndention && parser.prev().Type == lexer.Newline {
-		if parser.cur().Type == lexer.EndOfFile || parser.cur().Type == lexer.KwLet {
-			break
-		}
+	if firstExprTk.Indentation == targetIndention {
+		for parser.cur().Indentation == targetIndention && parser.prev().Type == lexer.Newline {
+			if parser.cur().Type == lexer.EndOfFile || parser.cur().Type == lexer.KwLet {
+				break
+			}
 
-		next := parser.parseExpression(0)
-		if next == nil {
-			break
+			next := parser.parseExpression(0)
+			if next == nil {
+				break
+			}
+			exprs = append(exprs, next)
 		}
-		exprs = append(exprs, next)
 	}
 	var body Expression
 	if len(exprs) == 1 {

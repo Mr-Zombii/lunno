@@ -1,27 +1,18 @@
-# Lunno
+<p align="center">
+    <img src="https://raw.githubusercontent.com/PeterGriffinSr/vscode-lunno/main/images/icon.png" alt="Icon">
+</p>
 
-**Lunno** is a small, type-explicit, purely functional scripting
-language built in Go.
+<p align="center">
+  <a href="https://github.com/PeterGriffinSr/lunno/releases"><img src="https://img.shields.io/github/release/PeterGriffinSr/lunno" alt="GitHub release"></a>
+  <a href="https://discord.gg/#"><img src="https://img.shields.io/discord/1442183644624978101?color=blue" alt="Discord chat"></a>
+</p>
 
-Everything in Lunno is an **expression**, variables are **immutable**,
-and functions are **first-class**.
+<!-- A spacer -->
+<div>&nbsp;</div>
 
----
+Lunno is a functional language for building type-safe systems at scale!
+For more information, see [the website](https://example.com/).
 
-## Features
-- **Purely functional**: no mutable variables by default,  recursion replaces loops.
-- **Type-explicit**: all bindings have explicit types, improving clarity and safety.
-- **First-class functions**: functions can be passwd around, returned, and stored in variables.
-- **Small but expressive**: a minimal set of keywords allows you to write complex programs.
+## Support Lunno!
 
----
-
-## Example Lunno Script
-
-```lunno
-import io
-
-print("Hello, world")
-```
-
----
+The open source community supports Lunno.

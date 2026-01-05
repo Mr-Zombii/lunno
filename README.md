@@ -11,7 +11,7 @@
 <div>&nbsp;</div>
 
 Lunno is a functional language for building type-safe systems at scale!
-For more information, see [the website](https://#/).
+For more information, see [the website](https://example.com/).
 
 ## Support Lunno!
 

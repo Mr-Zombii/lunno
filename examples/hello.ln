@@ -1,4 +1,4 @@
-let print: fn(T) -> T =
+let print: fn(T) -> unit =
     fn(x) ->
         _builtin_print(x)
         x

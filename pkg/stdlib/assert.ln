@@ -13,7 +13,7 @@
 #
 # Example:
 #   assert(x > 0)
-let assert: fn(bool) -> nil =
+let assert: fn(bool) -> unit =
     fn(cond) ->
         if cond then ()
         else _builtin_panic("assertion failed")

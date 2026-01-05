@@ -9,7 +9,7 @@
 # Example:
 #   print(42)
 #   # prints "42"
-let print: fn(T) -> T =
+let print: fn(T) -> unit =
     fn(x) ->
         _builtin_print(x)
         x
@@ -22,7 +22,7 @@ let print: fn(T) -> T =
 # Example:
 #   println("hello")
 #   # prints "hello\n"
-let println: fn(T) -> T =
+let println: fn(T) -> unit =
     fn(x) ->
         print(x)
         _builtin_print("\n")

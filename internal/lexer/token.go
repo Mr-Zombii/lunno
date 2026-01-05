@@ -89,6 +89,14 @@ var keywords = map[string]TokenType{
 	"false":  Bool,
 }
 
+func Keywords() map[string]TokenType {
+	out := make(map[string]TokenType, len(keywords))
+	for k, v := range keywords {
+		out[k] = v
+	}
+	return out
+}
+
 var precedences = map[TokenType]int{
 	Colon:    1,
 	Equal:    2,

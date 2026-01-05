@@ -18,6 +18,9 @@ func Execute(args []string) {
 	case "-v", "--version", "version":
 		findCommand("version").Run(nil)
 		return
+	case "lsp":
+		findCommand("lsp").Run(nil)
+		return
 	}
 	cmd := findCommand(args[0])
 	if cmd == nil {

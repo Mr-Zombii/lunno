@@ -7,6 +7,7 @@ import (
 var commands = []Command{
 	&RunCommand{},
 	&VersionCommand{},
+	&LspCommand{},
 }
 
 func findCommand(name string) Command {

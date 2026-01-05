@@ -333,7 +333,6 @@ func (parser *Parser) parseLetExpression() Expression {
 
 func (parser *Parser) parseFunctionLiteral() Expression {
 	fnToken := parser.cur()
-	bodyIndent := fnToken.Indentation + 1
 	parser.advance()
 	var parameters []Parameter
 	parser.expect(lexer.LeftParen)
@@ -367,15 +366,26 @@ func (parser *Parser) parseFunctionLiteral() Expression {
 	for parser.cur().Type == lexer.Newline {
 		parser.advance()
 	}
+
+	return &FunctionLiteralExpression{
+		Parameters: parameters,
+		Body:       parser.parseBlock(fnToken, "function body"),
+		Position:   fnToken,
+	}
+}
+
+func (parser *Parser) parseBlock(token lexer.Token, name string) Expression {
+	targetIndention := token.Indentation + 1
+
 	var exprs []Expression
 	first := parser.parseExpression(0)
 	if first == nil {
-		e := parser.error(fnToken, "expected function body expression")
+		e := parser.error(token, "expected "+name+" expression")
 		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
 	exprs = append(exprs, first)
-	for parser.cur().Indentation == bodyIndent && parser.prev().Type == lexer.Newline {
+	for parser.cur().Indentation == targetIndention && parser.prev().Type == lexer.Newline {
 		if parser.cur().Type == lexer.EndOfFile || parser.cur().Type == lexer.KwLet {
 			break
 		}
@@ -392,14 +402,10 @@ func (parser *Parser) parseFunctionLiteral() Expression {
 	} else {
 		body = &BlockExpression{
 			Expressions: exprs,
-			Position:    fnToken,
+			Position:    token,
 		}
 	}
-	return &FunctionLiteralExpression{
-		Parameters: parameters,
-		Body:       body,
-		Position:   fnToken,
-	}
+	return body
 }
 
 func (parser *Parser) parseIfExpression() Expression {
@@ -412,14 +418,14 @@ func (parser *Parser) parseIfExpression() Expression {
 		return nil
 	}
 	parser.advance()
-	thenBranch := parser.parseExpression(0)
+	thenBranch := parser.parseBlock(ifToken, "if body")
 	if parser.cur().Type != lexer.KwElse {
 		e := parser.error(parser.cur(), "expected 'else' after then branch")
 		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
-	parser.advance()
-	elseBranch := parser.parseExpression(0)
+	elseToken := parser.advance()
+	elseBranch := parser.parseBlock(elseToken, "else body")
 	return &IfExpression{
 		Condition: condition,
 		Then:      thenBranch,

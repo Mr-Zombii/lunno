@@ -22,7 +22,7 @@ const (
 	Newline
 
 	Identifier
-	Integer
+	Int
 	Float
 	String
 	Char
@@ -59,13 +59,14 @@ const (
 	KwThen
 	KwElse
 	KwImport
+	KwFrom
 	KwInt
 	KwFloat
 	KwString
 	KwChar
 	KwBool
-	KwList
 	KwUnit
+	KwNil
 
 	EndOfFile
 )
@@ -78,13 +79,14 @@ var keywords = map[string]TokenType{
 	"then":   KwThen,
 	"else":   KwElse,
 	"import": KwImport,
+	"from":   KwFrom,
 	"int":    KwInt,
 	"float":  KwFloat,
 	"string": KwString,
 	"char":   KwChar,
 	"bool":   KwBool,
-	"list":   KwList,
 	"unit":   KwUnit,
+	"nil":    KwNil,
 	"true":   Bool,
 	"false":  Bool,
 }
@@ -172,7 +174,7 @@ var Braces = map[TokenType]*bracePair{
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("%d('%s') at %d:%d", t.Type, strings.ReplaceAll(t.Lexeme, "\n", "\\n"), t.Line, t.Column)
+	return fmt.Sprintf("%d(%s) at %d:%d", t.Type, strings.ReplaceAll(t.Lexeme, "\n", "\\n"), t.Line, t.Column)
 }
 
 func (t Token) Span() diagnostics.Span {

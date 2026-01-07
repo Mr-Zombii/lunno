@@ -11,121 +11,135 @@ let pi: float = 3.141592653589793
 let e: float = 2.718281828459045
 
 # Add two values.
-#
-# Works for numeric types that support the + operator.
-let add: fn(T, T) -> T =
-    fn(a, b) -> a + b
+let add: fn(T, T) -> T {
+    fn(a, b) { 
+        a + b 
+    }
+}
 
 # Subtract the second value from the first.
-#
-# Works for numeric types that support the - operator.
-let sub: fn(T, T) -> T =
-    fn(a, b) -> a - b
+let sub: fn(T, T) -> T {
+    fn(a, b) { 
+        a - b 
+    }
+}
 
 # Multiply two values.
-#
-# Works for numeric types that support the * operator.
-let mul: fn(T, T) -> T =
-    fn(a, b) -> a * b
+let mul: fn(T, T) -> T {
+    fn(a, b) { 
+        a * b 
+    }
+}
 
 # Divide the first value by the second.
-#
-# Behavior for division by zero is runtime-defined.
-let div: fn(T, T) -> T =
-    fn(a, b) -> a / b
+let div: fn(T, T) -> T {
+    fn(a, b) { 
+        a / b 
+    }
+}
 
 # Return the sign of an integer.
-#
-# Returns:
-#   -1 if x < 0
-#    1 if x > 0
-#    0 if x == 0
-let sign: fn(int) -> int =
-    fn(x) ->
+let sign: fn(int) -> int {
+    fn(x) {
         if x < 0 then -1
         else if x > 0 then 1
         else 0
+    }
+}
 
 # Raise a floating-point number to an integer power.
 #
 # Uses repeated multiplication and supports negative exponents.
-#
-# Example:
-#   powi(2.0, -3) == 0.125
-let powi: fn(float, int) -> float =
-    fn(base, exp) ->
-        let rec loop: fn(float, int, float) -> float =
-            fn(b, e, acc) ->
+let powi: fn(float, int) -> float {
+    fn(base, exp) {
+        let rec loop: fn(float, int, float) -> float {
+            fn(b, e, acc) {
                 if e == 0 then acc
                 else loop(b, e - 1, acc * b)
-        if exp < 0
-        then 1.0 / loop(base, -exp, 1.0)
+            }
+        }
+        if exp < 0 then 1.0 / loop(base, -exp, 1.0)
         else loop(base, exp, 1.0)
+    }
+}
 
 # Compute the square root of a floating-point number.
 #
-# Uses Newton's method for fast convergence.
 # Panics if the input is negative.
-let sqrt: fn(float) -> float =
-    fn(n) ->
-        if n < 0.0 then panic("sqrt of negative number")
-        else
-            let rec newton: fn(float, float) -> float =
-                fn(x, approx) ->
-                    let better = (approx + x / approx) / 2.0
-                    if absf(better - approx) < 0.000001
-                    then better
-                    else newton(x, better)
-            newton(n, n / 2.0 + 1.0)
+let sqrt: fn(float) -> float {
+    fn(n) {
+        if n < 0.0 then _builtin_panic("sqrt of negative number")
+        else let rec newton: fn(float, float) -> float {
+            fn(x, approx) {
+                let better = (approx + x / approx) / 2.0
+                if absf(better - approx) < 0.000001 then better
+                else newton(x, better)
+            }
+        }
+        newton(n, n / 2.0 + 1.0)
+    }
+}
 
 # Return the smaller of two values.
-let min: fn(T, T) -> T =
-    fn(a, b) ->
+let min: fn(T, T) -> T {
+    fn(a, b) {
         if a < b then a else b
+    }
+}
 
 # Return the larger of two values.
-let max: fn(T, T) -> T =
-    fn(a, b) ->
+let max: fn(T, T) -> T {
+    fn(a, b) {
         if a > b then a else b
+    }
+}
 
 # Clamp a value to a given inclusive range.
 #
 # If x < lo, returns lo.
 # If x > hi, returns hi.
 # Otherwise, returns x.
-let clamp: fn(T, T, T) -> T =
-    fn(x, lo, hi) ->
+let clamp: fn(T, T, T) -> T {
+    fn(x, lo, hi) {
         if x < lo then lo
         else if x > hi then hi
         else x
+    }
+}
 
 # Compute the absolute value of an integer.
-let abs: fn(int) -> int =
-    fn(x) ->
+let abs: fn(int) -> int {
+    fn(x) {
         if x < 0 then -x else x
+    }
+}
 
 # Compute the absolute value of a floating-point number.
-let absf: fn(float) -> float =
-    fn(x) ->
+let absf: fn(float) -> float {
+    fn(x) {
         if x < 0.0 then -x else x
+    }
+}
 
 # Round a floating-point number down to the nearest integer.
-let floor: fn(float) -> int =
-    fn(x) ->
-        _builtin_floor(x)
+let floor: fn(float) -> int {
+    fn(x) { 
+        _builtin_floor(x) 
+    }
+}
 
 # Round a floating-point number up to the nearest integer.
-let ceil: fn(float) -> int =
-    fn(x) ->
-        _builtin_ceil(x)
+let ceil: fn(float) -> int {
+    fn(x) {
+        _builtin_ceil(x) 
+    }
+}
 
 # Round a floating-point number to the nearest integer.
 #
 # Half values are rounded up.
-# Example:
-#   round(2.3) == 2
-#   round(2.7) == 3
-#   round(2.5) == 3
-let round: fn(float) -> int =
-    fn(x) ->
-        floor(x + 0.5)
+let round: fn(float) -> int {
+    fn(x) { 
+        floor(x + 0.5) 
+    }
+}

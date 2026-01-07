@@ -5,25 +5,19 @@
 # This function prints the value and then returns it unchanged.
 # Returning the value makes it easy to use `print` in expressions
 # and pipelines without breaking data flow.
-#
-# Example:
-#   print(42)
-#   # prints "42"
-let print: fn(T) -> unit =
-    fn(x) ->
-        _builtin_print(x)
-        x
+let print: fn(T) -> unit {
+    fn(s) {
+        _builtin_print(s)
+    }
+}
 
 # Print a value followed by a newline.
 #
 # This is equivalent to calling `print(x)` and then printing
-# a newline character. The original value is returned unchanged.
-#
-# Example:
-#   println("hello")
-#   # prints "hello\n"
-let println: fn(T) -> unit =
-    fn(x) ->
-        print(x)
-        _builtin_print("\n")
-        x
+# a newline character. The original value is returned unchanged
+let println: fn(T) -> unit {
+    fn(s) {
+        print(s)
+        print("\n")
+    }
+}

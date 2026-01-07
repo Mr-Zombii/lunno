@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"lunno/internal/lexer"
-	"lunno/internal/parser"
 	"os"
 )
 
@@ -46,7 +45,7 @@ func (c *RunCommand) Run(args []string) {
 		}
 		os.Exit(1)
 	}
-	lx, tokens, err := lexer.Tokenize(string(source), filename)
+	_, tokens, err := lexer.Tokenize(string(source), filename)
 	if err != nil {
 		_, err := fmt.Fprintf(os.Stderr, "Lexing error: %v\n", err)
 		if err != nil {
@@ -54,14 +53,14 @@ func (c *RunCommand) Run(args []string) {
 		}
 		os.Exit(1)
 	}
-	program, errs := parser.ParseProgram(tokens, lx)
-	if len(errs) > 0 {
-		fmt.Printf("Parse errors (%d):\n", len(errs))
-		for _, e := range errs {
-			fmt.Println(" ", e)
-		}
-		os.Exit(1)
-	}
+	//program, errs := parser.ParseProgram(tokens, lx)
+	//if len(errs) > 0 {
+	//	fmt.Printf("Parse errors (%d):\n", len(errs))
+	//	for _, e := range errs {
+	//		fmt.Println(" ", e)
+	//	}
+	//	os.Exit(1)
+	//}
 	//typeErrors := typechecker.Check(program)
 	//if len(typeErrors) > 0 {
 	//	fmt.Printf("Type errors (%d):\n", len(typeErrors))
@@ -70,9 +69,12 @@ func (c *RunCommand) Run(args []string) {
 	//	}
 	//	os.Exit(1)
 	//}
-	if *c.dumpAST {
-		fmt.Println(parser.DumpProgram(program))
-		return
+	//if *c.dumpAST {
+	//	fmt.Println(parser.DumpProgram(program))
+	//	return
+	//}
+	for _, tok := range tokens {
+		fmt.Println(tok)
 	}
 	fmt.Println("Program ran successfully!")
 }

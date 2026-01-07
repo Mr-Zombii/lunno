@@ -1,4 +1,3 @@
-let print: fn(T) -> unit =
-    fn(x) ->
-        _builtin_print(x)
-        x
+let x: int = 10
+let y: string = "I'm a string"
+let z: char = 'a'

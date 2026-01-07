@@ -1,0 +1,26 @@
+# Option Module for Lunno
+
+class Option[T] {
+    Some(value: T)
+    None
+}
+
+# Apply a function to the value inside an Option, if present
+let map: fn(fn(T) -> U, Option[T]) -> Option[U] {
+    fn(f, opt) {
+        match opt {
+            | Option.Some(x) -> Option.Some(f(x))
+            | Option.None -> Option.None
+        }
+    }
+}
+
+# Get the value or a default
+let unwrap_or: fn(Option[T], T) -> T {
+    fn(opt, default) {
+        match opt {
+            | Option.Some(x) -> x
+            | Option.None -> default
+        }
+    }
+}

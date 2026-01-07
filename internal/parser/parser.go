@@ -115,7 +115,7 @@ func (parser *Parser) parsePrimary() Expression {
 	}
 	var expr Expression
 	switch token.Type {
-	case lexer.Integer:
+	case lexer.Int:
 		parser.advance()
 		value, err := strconv.ParseInt(token.Lexeme, 10, 64)
 		if err != nil {
@@ -461,14 +461,6 @@ func (parser *Parser) parseType() TypeNode {
 			Parameters: params,
 			Return:     returnType,
 			Position:   token}
-	case lexer.KwList:
-		parser.advance()
-		parser.expect(lexer.LeftParen)
-		elemType := parser.parseType()
-		parser.expect(lexer.RightParen)
-		return &ListType{
-			Element:  elemType,
-			Position: token}
 	case lexer.Identifier, lexer.KwInt, lexer.KwFloat, lexer.KwBool, lexer.KwString, lexer.KwChar, lexer.KwUnit:
 		parser.advance()
 		return &SimpleType{

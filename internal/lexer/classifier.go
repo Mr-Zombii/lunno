@@ -2,7 +2,7 @@ package lexer
 
 import "strings"
 
-func classify(ch byte) CharClass {
+func classify(ch rune) CharClass {
 	switch {
 	case ch == 0:
 		return CC_EOF
@@ -27,6 +27,6 @@ func classify(ch byte) CharClass {
 	case strings.ContainsRune("+-*/=<>!:,()[]{}", rune(ch)):
 		return CC_Operator
 	default:
-		return CC_Other
+		panic("classify: unrecognized character '" + string(ch) + "'")
 	}
 }

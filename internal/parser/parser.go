@@ -37,9 +37,6 @@ func ParseProgram(tokens []lexer.Token, lx *lexer.Lexer) (*Program, []string) {
 }
 
 func (parser *Parser) parseExpression(minPrecedence int) Expression {
-	for parser.cur().Type == lexer.Newline {
-		parser.advance()
-	}
 	token := parser.cur()
 	if token.Type == lexer.KwLet {
 		return parser.parseLetExpression()
@@ -67,9 +64,6 @@ func (parser *Parser) parseExpression(minPrecedence int) Expression {
 			Right:    right,
 			Position: op,
 		}
-	}
-	for parser.cur().Type == lexer.Newline {
-		parser.advance()
 	}
 	return left
 }
@@ -363,9 +357,6 @@ func (parser *Parser) parseFunctionLiteral() Expression {
 	if parser.cur().Type == lexer.Arrow {
 		parser.advance()
 	}
-	for parser.cur().Type == lexer.Newline {
-		parser.advance()
-	}
 
 	return &FunctionLiteralExpression{
 		Parameters: parameters,
@@ -375,10 +366,7 @@ func (parser *Parser) parseFunctionLiteral() Expression {
 }
 
 func (parser *Parser) parseBlock(token lexer.Token, name string) Expression {
-	targetIndention := token.Indentation + 1
-
 	var exprs []Expression
-	firstExprTk := parser.cur()
 	first := parser.parseExpression(0)
 	if first == nil {
 		e := parser.error(token, "expected "+name+" expression")
@@ -386,19 +374,19 @@ func (parser *Parser) parseBlock(token lexer.Token, name string) Expression {
 		return nil
 	}
 	exprs = append(exprs, first)
-	if firstExprTk.Indentation == targetIndention {
-		for parser.cur().Indentation == targetIndention && parser.prev().Type == lexer.Newline {
-			if parser.cur().Type == lexer.EndOfFile || parser.cur().Type == lexer.KwLet {
-				break
-			}
-
-			next := parser.parseExpression(0)
-			if next == nil {
-				break
-			}
-			exprs = append(exprs, next)
-		}
-	}
+	//if firstExprTk.Indentation == targetIndention {
+	//	for parser.cur().Indentation == targetIndention {
+	//		if parser.cur().Type == lexer.EndOfFile || parser.cur().Type == lexer.KwLet {
+	//			break
+	//		}
+	//
+	//		next := parser.parseExpression(0)
+	//		if next == nil {
+	//			break
+	//		}
+	//		exprs = append(exprs, next)
+	//	}
+	//}
 	var body Expression
 	if len(exprs) == 1 {
 		body = exprs[0]

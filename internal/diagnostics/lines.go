@@ -5,11 +5,11 @@ import (
 	"strings"
 )
 
-func getLineText(source []byte, line int) string {
+func getLineText(source []rune, line uint16) string {
 	if line < 1 {
 		return ""
 	}
-	curLine := 1
+	curLine := uint16(1)
 	start := 0
 	for i, b := range source {
 		if curLine == line {
@@ -33,10 +33,10 @@ func getLineText(source []byte, line int) string {
 	return string(source[start:end])
 }
 
-func makeCaret(column int) string {
+func makeCaret(column uint16) string {
 	spaces := column - 1
 	if spaces < 0 {
 		spaces = 0
 	}
-	return fmt.Sprintf("%s^", strings.Repeat(" ", spaces))
+	return fmt.Sprintf("%s^", strings.Repeat(" ", int(spaces)))
 }

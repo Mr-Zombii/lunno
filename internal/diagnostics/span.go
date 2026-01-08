@@ -2,6 +2,6 @@ package diagnostics
 
 type Span struct {
 	File   string
-	Line   int
-	Column int
+	Line   uint16
+	Column uint16
 }

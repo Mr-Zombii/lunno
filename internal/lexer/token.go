@@ -9,17 +9,15 @@ import (
 type TokenType int
 
 type Token struct {
-	Type        TokenType
-	Lexeme      string
-	Line        int
-	Column      int
-	Indentation int
-	File        string
+	Type   TokenType
+	Lexeme string
+	Line   uint16
+	Column uint16
+	File   string
 }
 
 const (
 	Illegal TokenType = iota
-	Newline
 
 	Identifier
 	Int
@@ -130,7 +128,7 @@ var singleCharTokens = map[byte]TokenType{
 	'+': Plus, '-': Minus,
 	'*': Asterisk, '/': Slash,
 	':': Colon, ',': Comma,
-	'=': Assign, '\n': Newline,
+	'=': Assign,
 }
 
 type bracePair struct {

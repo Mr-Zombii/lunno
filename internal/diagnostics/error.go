@@ -2,7 +2,7 @@ package diagnostics
 
 import "fmt"
 
-func Report(source []byte, span Span, msg string) error {
+func Report(source []rune, span Span, msg string) error {
 	lineText := getLineText(source, span.Line)
 	caret := makeCaret(span.Column)
 

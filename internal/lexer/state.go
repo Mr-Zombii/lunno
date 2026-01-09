@@ -7,6 +7,7 @@ const (
 	S_Ident
 	S_Int
 	S_Float
+	S_FloatDot
 	S_String
 	S_StringEsc
 	S_Char
@@ -42,6 +43,12 @@ var dfa = map[State]map[CharClass]State{
 		CC_Dot:   S_Float,
 	},
 
+	S_FloatDot: {
+		CC_Digit: S_Float,
+		CC_Other: S_Error,
+		CC_EOF:   S_Error,
+	},
+
 	S_Float: {
 		CC_Digit: S_Float,
 	},
@@ -56,7 +63,7 @@ var dfa = map[State]map[CharClass]State{
 		CC_Operator:   S_String,
 		CC_Underscore: S_String,
 		CC_Dot:        S_String,
-		CC_Other:      S_Error,
+		CC_Other:      S_String,
 		CC_Apostrophe: S_String,
 	},
 
@@ -68,7 +75,7 @@ var dfa = map[State]map[CharClass]State{
 		CC_Apostrophe: S_String,
 		CC_Backslash:  S_String,
 		CC_EOF:        S_Error,
-		CC_Other:      S_Error,
+		CC_Other:      S_String,
 	},
 
 	S_Char: {

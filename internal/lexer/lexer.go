@@ -41,123 +41,108 @@ func Tokenize(source, filename string) (*Lexer, []Token, error) {
 }
 
 func (lexer *Lexer) Next() Token {
-	for {
-		for lexer.position < lexer.sourceLen {
-			ch := lexer.Source[lexer.position]
-			cc := classify(ch)
-
-			if cc == CC_Whitespace || cc == CC_Newline {
-				lexer.advance()
-			} else {
-				break
-			}
-		}
-		lexer.startPos = lexer.position
-		lexer.startLine = lexer.line
-		lexer.startColumn = lexer.column
-		if lexer.position >= lexer.sourceLen {
-			return lexer.makeToken(EndOfFile, "")
-		}
-		state := S_Start
-		for lexer.position < lexer.sourceLen {
-			ch := lexer.peek()
-			cc := classify(ch)
-
-			next, ok := dfa[state][cc]
-			if !ok {
-				break
-			}
-
-			state = next
+	for lexer.position < lexer.sourceLen {
+		cc := classify(lexer.Source[lexer.position])
+		if cc == CC_Whitespace || cc == CC_Newline {
 			lexer.advance()
-			if lexer.position >= lexer.sourceLen {
-				switch state {
-				case S_String, S_StringEsc:
-					return lexer.errorAt(
-						"unterminated string literal",
-						string(lexer.Source[lexer.startPos:lexer.position]),
-						lexer.startLine,
-						lexer.column-1,
-					)
-				case S_Char, S_CharEsc, S_CharDone:
-					return lexer.errorAt(
-						"unterminated character literal",
-						string(lexer.Source[lexer.startPos:lexer.position]),
-						lexer.startLine,
-						lexer.column-1,
-					)
-				default:
-					// Fallthrough, Don't return anything here please!
-				}
-			}
-		}
-		if state == S_Done && lexer.startPos == lexer.position {
-			return lexer.makeToken(EndOfFile, "")
-		}
-		if emit, ok := accepting[state]; ok {
-			lex := string(lexer.Source[lexer.startPos:lexer.position])
-			tokType := emit(lexer, lex)
-			if tokType == Illegal {
-				msg := "invalid token"
-				if len(lex) > 0 {
-					switch lex[0] {
-					case '\'':
-						content := lex[1 : len(lex)-1]
-						if len(content) == 0 {
-							return lexer.errorAt(
-								"empty characters not allowed",
-								lex,
-								lexer.startLine,
-								lexer.startColumn+1,
-							)
-						} else if content[0] == '\\' {
-							if len(content) != 2 || !isValidEscape(content[1]) {
-								return lexer.errorAt(
-									"invalid escape sequence in character literal",
-									lex,
-									lexer.startLine,
-									lexer.startColumn+1,
-								)
-							}
-						} else if len([]rune(content)) != 1 {
-							return lexer.errorAt(
-								"character literal must contain exactly one character",
-								lex,
-								lexer.startLine,
-								lexer.startColumn+1,
-							)
-						}
-					case '"':
-						content := lex[1 : len(lex)-1]
-						if len(content) == 0 {
-							return lexer.errorAt(
-								"empty strings not allowed",
-								lex,
-								lexer.startLine,
-								lexer.startColumn+1,
-							)
-						}
-						for i := uint16(1); i < uint16(len(lex)-1); i++ {
-							if lex[i] == '\\' && !isValidEscape(lex[i+1]) {
-								msg = "invalid escape sequence in string literal"
-								errCol := lexer.startColumn + i
-								return lexer.errorAt(msg, lex, lexer.startLine, errCol)
-							}
-						}
-					}
-				}
-				return lexer.errorToken(msg, lex)
-			}
-			return lexer.makeToken(tokType, lex)
-		}
-		if lexer.position == lexer.startPos {
-			ch := lexer.advance()
-			return lexer.errorToken(
-				fmt.Sprintf("unexpected character '%c'", ch),
-				string(ch),
-			)
+		} else {
+			break
 		}
 	}
+	lexer.startPos = lexer.position
+	lexer.startLine = lexer.line
+	lexer.startColumn = lexer.column
+	if lexer.position >= lexer.sourceLen {
+		return lexer.makeToken(EndOfFile, "")
+	}
+	state := S_Start
+	for lexer.position < lexer.sourceLen {
+		ch := lexer.peek()
+		cc := classify(ch)
+		next, ok := dfa[state][cc]
+		if !ok {
+			break
+		}
+		state = next
+		lexer.advance()
+		if lexer.position >= lexer.sourceLen {
+			switch state {
+			case S_String, S_StringEsc:
+				return lexer.errorAt(
+					"unterminated string literal",
+					string(lexer.Source[lexer.startPos:lexer.position]),
+					lexer.startLine,
+					lexer.column-1,
+				)
+			case S_Char, S_CharEsc, S_CharDone:
+				return lexer.errorAt(
+					"unterminated character literal",
+					string(lexer.Source[lexer.startPos:lexer.position]),
+					lexer.startLine,
+					lexer.column-1,
+				)
+			default:
+			}
+		}
+	}
+	lex := string(lexer.Source[lexer.startPos:lexer.position])
+	if state == S_Done && lexer.startPos == lexer.position {
+		return lexer.makeToken(EndOfFile, "")
+	}
+	if state == S_Float && len(lex) > 0 && lex[len(lex)-1] == '.' {
+		return lexer.errorAt(
+			"malformed float literal",
+			lex,
+			lexer.startLine,
+			lexer.column-1,
+		)
+	}
+	if emit, ok := accepting[state]; ok {
+		tokType := emit(lexer, lex)
+		if tokType == Illegal {
+			return lexer.handleIllegal(lex)
+		}
+		return lexer.makeToken(tokType, lex)
+	}
+	if lexer.position == lexer.startPos {
+		ch := lexer.advance()
+		return lexer.errorToken(
+			fmt.Sprintf("unexpected character '%c'", ch),
+			string(ch),
+		)
+	}
+	return lexer.errorToken("invalid token", lex)
+}
+
+func (lexer *Lexer) handleIllegal(lex string) Token {
+	if len(lex) == 0 {
+		return lexer.errorToken("invalid token", lex)
+	}
+	switch lex[0] {
+	case '\'':
+		content := lex[1 : len(lex)-1]
+		if len(content) == 0 {
+			return lexer.errorAt("empty characters not allowed", lex, lexer.startLine, lexer.startColumn+1)
+		} else if content[0] == '\\' {
+			if len(content) != 2 || !isValidEscape(content[1]) {
+				return lexer.errorAt("invalid escape sequence in character literal", lex, lexer.startLine, lexer.startColumn+1)
+			}
+		} else if len([]rune(content)) != 1 {
+			return lexer.errorAt("character literal must contain exactly one character", lex, lexer.startLine, lexer.startColumn+1)
+		}
+	case '"':
+		content := lex[1 : len(lex)-1]
+		if len(content) == 0 {
+			return lexer.errorAt("empty strings not allowed", lex, lexer.startLine, lexer.startColumn+1)
+		}
+		for i := uint16(1); i < uint16(len(lex)-1); i++ {
+			if lex[i] == '\\' && !isValidEscape(lex[i+1]) {
+				errCol := lexer.startColumn + i
+				return lexer.errorAt("invalid escape sequence in string literal", lex, lexer.startLine, errCol)
+			}
+		}
+	}
+	return lexer.errorToken("invalid token", lex)
 }
 
 func (lexer *Lexer) peek() rune {
@@ -232,7 +217,8 @@ func lookupIdentifier(lex string) TokenType {
 
 func isValidEscape(ch byte) bool {
 	switch ch {
-	case 'n', 't', 'r', '0',
+	case 'n', 't', 'r',
+		'u', 'x', '0',
 		'\\', '\'', '"':
 		return true
 	default:

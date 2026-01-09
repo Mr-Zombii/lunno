@@ -12,7 +12,7 @@ func classify(ch rune) CharClass {
 		return CC_Whitespace
 	case ch == '_':
 		return CC_Underscore
-	case 'a' <= ch && ch <= 'z', 'A' <= ch && ch <= 'Z':
+	case ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z'):
 		return CC_Letter
 	case '0' <= ch && ch <= '9':
 		return CC_Digit
@@ -24,9 +24,9 @@ func classify(ch rune) CharClass {
 		return CC_Apostrophe
 	case ch == '\\':
 		return CC_Backslash
-	case strings.ContainsRune("+-*/=<>!:,()[]{}", rune(ch)):
+	case strings.ContainsRune("+-*/=<>!:,()[]{}", ch):
 		return CC_Operator
 	default:
-		panic("classify: unrecognized character '" + string(ch) + "'")
+		return CC_Other
 	}
 }

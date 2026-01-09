@@ -88,6 +88,17 @@ catch {
 $LdFlags = "-X 'lunno/internal/version.Version=$FullVersion'
             -X 'lunno/internal/version.GitCommit=$GitCommit'"
 
+if ($RunTests) {
+   $TestArgs = @("test", "./...")
+
+   try {
+       go @TestArgs
+   }
+   catch {
+       Fail "Tests failed. Aborting build."
+   }
+}
+
 function Build-Target {
     param(
         [string]$Target

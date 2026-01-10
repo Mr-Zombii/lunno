@@ -1,7 +1,5 @@
 # List Module for Lunno
 
-from option import Option
-
 # Apply a function to every element of a list,
 # producing a new list of results.
 let map: fn(fn(T) -> U, [T]) -> [U] {
@@ -43,20 +41,20 @@ let length: fn([T]) -> int {
 }
 
 # Return the first element of a list.
-let head: fn([T]) -> Option[T] {
-    fn(lst) {
-        if lst == [] then Option.None
-        else Option.Some(lst[0])
-    }
-}
+#let head: fn([T]) -> Option[T] {
+#    fn(lst) {
+#        if lst == [] then Option.None
+#        else Option.Some(lst[0])
+#    }
+#}
 
 # Return all elements of a list except the first.
-let tail: fn([T]) -> Option[[T]] {
-    fn(lst) {
-        if lst == [] then Option.None
-        else Option.Some(lst[1:])
-    }
-}
+#let tail: fn([T]) -> Option[[T]] {
+#    fn(lst) {
+#        if lst == [] then Option.None
+#        else Option.Some(lst[1:])
+#    }
+#}
 
 # Left fold over a list.
 #

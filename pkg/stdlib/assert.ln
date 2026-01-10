@@ -5,10 +5,10 @@
 # If the condition evaluates to true, this function does nothing.
 # If the condition evaluates to false, the program aborts with
 # an assertion failure.
-let assert: fn(bool, string?) -> unit {
-    fn(cond, msg?) {
+let assert: fn(bool, string) -> unit {
+    fn(cond, msg) {
         if cond then ()
-        else _builtin_panic(match msg with {
+        else builtin_panic(match msg with {
             | nil -> "assertion failed"
             | s -> s
         })

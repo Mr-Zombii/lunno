@@ -49,26 +49,7 @@ func (checker *Checker) checkExpr(expr parser.Expression) Type {
 			Element: elem,
 		}, subst)
 	case *parser.FunctionLiteralExpression:
-		fnEnv := newEnv(checker.env)
-		params := make([]Type, len(e.Parameters))
-		for i, p := range e.Parameters {
-			var pt Type
-			if p.Type != nil {
-				pt = checker.resolveType(p.Type)
-			} else {
-				pt = checker.freshVar()
-			}
-			params[i] = pt
-			fnEnv.set(p.Name.Lexeme, generalize(checker.env, pt))
-		}
-		old := checker.env
-		checker.env = fnEnv
-		body := checker.checkExpr(e.Body)
-		checker.env = old
-		return &FunctionType{
-			Parameters: params,
-			Return:     body,
-		}
+		return checker.checkFunctionLiteral(e, nil)
 	case *parser.VariableDeclarationExpression:
 		valType := checker.checkExpr(e.Value)
 		declType := checker.resolveType(e.Type)
@@ -94,4 +75,37 @@ func (checker *Checker) checkExpr(expr parser.Expression) Type {
 		return apply(t1, subst)
 	}
 	return checker.freshVar()
+}
+
+func (checker *Checker) checkFunctionLiteral(e *parser.FunctionLiteralExpression, declaredType *FunctionType) Type {
+	fnEnv := newEnv(checker.env)
+	params := make([]Type, len(e.Parameters))
+	for i, p := range e.Parameters {
+		var pt Type
+		if declaredType != nil {
+			pt = declaredType.Parameters[i]
+		} else if p.Type != nil {
+			pt = checker.resolveType(p.Type)
+		} else {
+			pt = checker.freshVar()
+		}
+		params[i] = pt
+		fnEnv.set(p.Name.Lexeme, generalize(checker.env, pt))
+	}
+	old := checker.env
+	checker.env = fnEnv
+	body := checker.checkExpr(e.Body)
+	checker.env = old
+	subst := Subst{}
+	var retType Type = &UnitType{}
+	if declaredType != nil {
+		retType = declaredType.Return
+	}
+	if err := unify(body, retType, subst); err != nil {
+		checker.errors = append(checker.errors, err)
+	}
+	return &FunctionType{
+		Parameters: params,
+		Return:     apply(body, subst),
+	}
 }

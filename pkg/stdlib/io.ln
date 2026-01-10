@@ -7,7 +7,7 @@
 # and pipelines without breaking data flow.
 let print: fn(T) -> unit {
     fn(s) {
-        _builtin_print(s)
+        builtin_print(s)
     }
 }
 

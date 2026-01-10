@@ -1,5 +1,5 @@
-''
-'\x'
-'ab'
-"\x"
-""
+let print: fn(int) -> unit {
+     fn(s) {
+         builtin_print(s)
+     }
+ }

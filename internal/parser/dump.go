@@ -23,6 +23,34 @@ func node(indent string, last bool, label string) (string, string) {
 	return indent + branch + label + "\n", next
 }
 
+func dumpPattern(p Pattern, indent string, last bool) string {
+	switch n := p.(type) {
+	case *WildcardPattern:
+		line, _ := node(indent, last, "WildcardPattern _")
+		return line
+	case *IdentifierPattern:
+		line, _ := node(indent, last, "IdentifierPattern "+n.Name)
+		return line
+	case *NilPattern:
+		line, _ := node(indent, last, "NilPattern")
+		return line
+	case *LiteralPattern:
+		line, next := node(indent, last, "LiteralPattern")
+		return line + dumpExpr(n.Value, next, true)
+	case *ListPattern:
+		line, next := node(indent, last, "ListPattern")
+		var out strings.Builder
+		out.WriteString(line)
+		for i, e := range n.Elements {
+			out.WriteString(dumpPattern(e, next, i == len(n.Elements)-1))
+		}
+		return out.String()
+	default:
+		line, _ := node(indent, last, fmt.Sprintf("<unknown pattern %T>", n))
+		return line
+	}
+}
+
 func dumpExpr(expr Expression, indent string, last bool) string {
 	switch n := expr.(type) {
 	case *Identifier:
@@ -158,6 +186,31 @@ func dumpExpr(expr Expression, indent string, last bool) string {
 			eLine, eNext := node(next, true, "Else")
 			out.WriteString(eLine)
 			out.WriteString(dumpExpr(n.Else, eNext, true))
+		}
+		return out.String()
+	case *MatchExpression:
+		line, next := node(indent, last, "MatchExpression")
+		var out strings.Builder
+		out.WriteString(line)
+		tLine, tNext := node(next, false, "Target")
+		out.WriteString(tLine)
+		out.WriteString(dumpExpr(n.Target, tNext, true))
+		aLine, aNext := node(next, true, "Arms")
+		out.WriteString(aLine)
+		for i, arm := range n.Arms {
+			armLine, armNext := node(aNext, i == len(n.Arms)-1, "Arm")
+			out.WriteString(armLine)
+			pLine, pNext := node(armNext, false, "Pattern")
+			out.WriteString(pLine)
+			out.WriteString(dumpPattern(arm.Pattern, pNext, true))
+			if arm.Guard != nil {
+				gLine, gNext := node(armNext, false, "Guard")
+				out.WriteString(gLine)
+				out.WriteString(dumpExpr(arm.Guard, gNext, true))
+			}
+			bLine, bNext := node(armNext, true, "Body")
+			out.WriteString(bLine)
+			out.WriteString(dumpExpr(arm.Body, bNext, true))
 		}
 		return out.String()
 	case *ImportExpression:

@@ -24,7 +24,7 @@ func classify(ch rune) CharClass {
 		return CC_Apostrophe
 	case ch == '\\':
 		return CC_Backslash
-	case strings.ContainsRune("+-*/=<>!:,()[]{}", ch):
+	case strings.ContainsRune("+-*/=<>!:,()[]{}?", ch):
 		return CC_Operator
 	default:
 		return CC_Other

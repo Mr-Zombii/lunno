@@ -177,6 +177,8 @@ func (parser *Parser) parsePrimary() Expression {
 		expr = parser.parseFunctionLiteral()
 	case lexer.KwIf:
 		expr = parser.parseIfExpression()
+	case lexer.KwMatch:
+		expr = parser.parseMatchExpression()
 	case lexer.KwImport:
 		parser.advance()
 		mod := parser.expect(lexer.Identifier)
@@ -282,28 +284,29 @@ func (parser *Parser) parseLetExpression() Expression {
 		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
-	if parser.cur().Type != lexer.Colon {
-		e := parser.error(parser.cur(), "expected ':' after identifier in let declaration")
-		parser.errors = append(parser.errors, e.Error())
-		return nil
+	var typ TypeNode
+	if parser.cur().Type == lexer.Colon {
+		parser.advance()
+		typ = parser.parseType()
+		if typ == nil {
+			e := parser.error(parser.cur(), "expected type in let declaration")
+			parser.errors = append(parser.errors, e.Error())
+			return nil
+		}
 	}
-	parser.advance()
-	typ := parser.parseType()
-	if typ == nil {
-		e := parser.error(parser.cur(), "expected type in let declaration")
-		parser.errors = append(parser.errors, e.Error())
-		return nil
-	}
-	if parser.cur().Type != lexer.Assign {
-		e := parser.error(parser.cur(), "expected '=' after type in let declaration")
-		parser.errors = append(parser.errors, e.Error())
-		return nil
-	}
-	parser.advance()
-	assignToken := parser.cur()
-	value := parser.parseExpression(0)
-	if value == nil {
-		e := parser.error(assignToken, "expected value in let declaration")
+	var value Expression
+	if parser.cur().Type == lexer.Assign {
+		parser.advance()
+		value = parser.parseExpression(0)
+		if value == nil {
+			e := parser.error(parser.cur(), "expected value in let declaration")
+			parser.errors = append(parser.errors, e.Error())
+			return nil
+		}
+	} else if parser.cur().Type == lexer.LeftBrace {
+		value = parser.parseBlock(parser.cur(), "let block")
+	} else {
+		e := parser.error(parser.cur(), "expected '=' or '{' after identifier/type in let declaration")
 		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
@@ -366,37 +369,34 @@ func (parser *Parser) parseFunctionLiteral() Expression {
 }
 
 func (parser *Parser) parseBlock(token lexer.Token, name string) Expression {
-	var exprs []Expression
-	first := parser.parseExpression(0)
-	if first == nil {
-		e := parser.error(token, "expected "+name+" expression")
+	if parser.cur().Type != lexer.LeftBrace {
+		e := parser.error(parser.cur(), fmt.Sprintf("expected '{' to start %s block", name))
 		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
-	exprs = append(exprs, first)
-	//if firstExprTk.Indentation == targetIndention {
-	//	for parser.cur().Indentation == targetIndention {
-	//		if parser.cur().Type == lexer.EndOfFile || parser.cur().Type == lexer.KwLet {
-	//			break
-	//		}
-	//
-	//		next := parser.parseExpression(0)
-	//		if next == nil {
-	//			break
-	//		}
-	//		exprs = append(exprs, next)
-	//	}
-	//}
-	var body Expression
-	if len(exprs) == 1 {
-		body = exprs[0]
-	} else {
-		body = &BlockExpression{
-			Expressions: exprs,
-			Position:    token,
+	parser.advance()
+	var exprs []Expression
+	for parser.cur().Type != lexer.RightBrace && parser.cur().Type != lexer.EndOfFile {
+		expr := parser.parseExpression(0)
+		if expr != nil {
+			exprs = append(exprs, expr)
+		} else {
+			parser.advance()
 		}
 	}
-	return body
+	if parser.cur().Type == lexer.RightBrace {
+		parser.advance()
+	} else {
+		e := parser.error(parser.cur(), fmt.Sprintf("expected '}' to close %s block", name))
+		parser.errors = append(parser.errors, e.Error())
+	}
+	if len(exprs) == 1 {
+		return exprs[0]
+	}
+	return &BlockExpression{
+		Expressions: exprs,
+		Position:    token,
+	}
 }
 
 func (parser *Parser) parseIfExpression() Expression {
@@ -409,14 +409,24 @@ func (parser *Parser) parseIfExpression() Expression {
 		return nil
 	}
 	parser.advance()
-	thenBranch := parser.parseBlock(ifToken, "if body")
+	var thenBranch Expression
+	if parser.cur().Type == lexer.LeftBrace {
+		thenBranch = parser.parseBlock(parser.cur(), "then branch")
+	} else {
+		thenBranch = parser.parseExpression(0)
+	}
 	if parser.cur().Type != lexer.KwElse {
 		e := parser.error(parser.cur(), "expected 'else' after then branch")
 		parser.errors = append(parser.errors, e.Error())
 		return nil
 	}
-	elseToken := parser.advance()
-	elseBranch := parser.parseBlock(elseToken, "else body")
+	parser.advance()
+	var elseBranch Expression
+	if parser.cur().Type == lexer.LeftBrace {
+		elseBranch = parser.parseBlock(parser.cur(), "else branch")
+	} else {
+		elseBranch = parser.parseExpression(0)
+	}
 	return &IfExpression{
 		Condition: condition,
 		Then:      thenBranch,
@@ -425,18 +435,120 @@ func (parser *Parser) parseIfExpression() Expression {
 	}
 }
 
+func (parser *Parser) parseMatchExpression() Expression {
+	matchToken := parser.cur()
+	parser.advance()
+	target := parser.parseExpression(0)
+	if target == nil {
+		return nil
+	}
+	parser.expect(lexer.KwWith)
+	parser.expect(lexer.LeftBrace)
+	var arms []MatchArm
+	for parser.cur().Type != lexer.RightBrace &&
+		parser.cur().Type != lexer.EndOfFile {
+		parser.expect(lexer.Pipe)
+		pat := parser.parsePattern()
+		if pat == nil {
+			return nil
+		}
+		var guard Expression
+		if parser.cur().Type == lexer.KwWhen {
+			parser.advance()
+			guard = parser.parseExpression(0)
+		}
+		parser.expect(lexer.Arrow)
+		body := parser.parseExpression(0)
+		if body == nil {
+			return nil
+		}
+		arms = append(arms, MatchArm{
+			Pattern:  pat,
+			Guard:    guard,
+			Body:     body,
+			Position: matchToken,
+		})
+	}
+	parser.expect(lexer.RightBrace)
+	return &MatchExpression{
+		Target:   target,
+		Arms:     arms,
+		Position: matchToken,
+	}
+}
+
+func (parser *Parser) parsePattern() Pattern {
+	token := parser.cur()
+	switch token.Type {
+	case lexer.Underscore:
+		parser.advance()
+		return &WildcardPattern{
+			Position: token,
+		}
+	case lexer.Identifier:
+		parser.advance()
+		return &IdentifierPattern{
+			Name:     token.Lexeme,
+			Position: token,
+		}
+	case lexer.KwNil:
+		parser.advance()
+		return &NilPattern{
+			Position: token,
+		}
+	case lexer.LeftBracket:
+		return parser.parseListPattern()
+	case lexer.Int, lexer.Float, lexer.String, lexer.Char, lexer.Bool:
+		lit := parser.parsePrimary()
+		return &LiteralPattern{
+			Value:    lit,
+			Position: token,
+		}
+	default:
+		e := parser.error(token, "invalid pattern")
+		parser.errors = append(parser.errors, e.Error())
+		return nil
+	}
+}
+
+func (parser *Parser) parseListPattern() Pattern {
+	start := parser.cur()
+	parser.advance()
+	var elems []Pattern
+	for parser.cur().Type != lexer.RightBracket &&
+		parser.cur().Type != lexer.EndOfFile {
+		p := parser.parsePattern()
+		if p == nil {
+			return nil
+		}
+		elems = append(elems, p)
+		if parser.cur().Type == lexer.Comma {
+			parser.advance()
+		} else {
+			break
+		}
+	}
+	parser.expect(lexer.RightBracket)
+	return &ListPattern{
+		Elements: elems,
+		Position: start,
+	}
+}
+
 func (parser *Parser) parseType() TypeNode {
 	token := parser.cur()
 	switch token.Type {
 	case lexer.KwFn:
 		parser.advance()
-		var params []TypeNode
 		parser.expect(lexer.LeftParen)
+		var params []TypeNode
 		for parser.cur().Type != lexer.RightParen && parser.cur().Type != lexer.EndOfFile {
 			paramType := parser.parseType()
 			params = append(params, paramType)
 			if parser.cur().Type == lexer.Comma {
 				parser.advance()
+			} else {
+				break
 			}
 		}
 		parser.expect(lexer.RightParen)
@@ -448,14 +560,22 @@ func (parser *Parser) parseType() TypeNode {
 		return &FunctionType{
 			Parameters: params,
 			Return:     returnType,
-			Position:   token}
+			Position:   token,
+		}
+	case lexer.LeftBracket:
+		parser.advance()
+		elemType := parser.parseType()
+		parser.expect(lexer.RightBracket)
+		return &ListType{
+			Element:  elemType,
+			Position: token,
+		}
 	case lexer.Identifier, lexer.KwInt, lexer.KwFloat, lexer.KwBool, lexer.KwString, lexer.KwChar, lexer.KwUnit:
 		parser.advance()
 		return &SimpleType{
 			Name: token.Lexeme,
-			Pos:  token}
-	case lexer.EndOfFile:
-		return nil
+			Pos:  token,
+		}
 	default:
 		e := parser.error(token, fmt.Sprintf("unexpected token in type: %q", token.Lexeme))
 		parser.errors = append(parser.errors, e.Error())

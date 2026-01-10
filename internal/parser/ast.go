@@ -218,6 +218,73 @@ func (i *IfExpression) NodeType() string {
 	return "IfExpression"
 }
 
+type Pattern interface {
+	Node
+	patternNode()
+}
+
+type WildcardPattern struct {
+	Position lexer.Token
+}
+
+func (w *WildcardPattern) patternNode() {}
+func (w *WildcardPattern) NodeType() string {
+	return "WildcardPattern"
+}
+
+type IdentifierPattern struct {
+	Name     string
+	Position lexer.Token
+}
+
+func (i *IdentifierPattern) patternNode() {}
+func (i *IdentifierPattern) NodeType() string {
+	return "IdentifierPattern"
+}
+
+type LiteralPattern struct {
+	Value    Expression
+	Position lexer.Token
+}
+
+func (l *LiteralPattern) patternNode()     {}
+func (l *LiteralPattern) NodeType() string { return "LiteralPattern" }
+
+type NilPattern struct {
+	Position lexer.Token
+}
+
+func (n *NilPattern) patternNode()     {}
+func (n *NilPattern) NodeType() string { return "NilPattern" }
+
+type ListPattern struct {
+	Elements []Pattern
+	Position lexer.Token
+}
+
+func (l *ListPattern) patternNode() {}
+func (l *ListPattern) NodeType() string {
+	return "ListPattern"
+}
+
+type MatchArm struct {
+	Pattern  Pattern
+	Guard    Expression
+	Body     Expression
+	Position lexer.Token
+}
+
+type MatchExpression struct {
+	Target   Expression
+	Arms     []MatchArm
+	Position lexer.Token
+}
+
+func (m *MatchExpression) exprNode() {}
+func (m *MatchExpression) NodeType() string {
+	return "MatchExpression"
+}
+
 type ImportExpression struct {
 	Module   string
 	Position lexer.Token

@@ -5,9 +5,9 @@ func registerBuiltins(env *Env) {
 	s := &Scheme{
 		TypeVars: []int{tv.ID},
 		Type: &FunctionType{
-			Parameters: []Type{tv},
+			Parameters: []Type{&StringType{}},
 			Return:     &UnitType{},
 		},
 	}
-	env.set("_builtin_print", s)
+	env.set("builtin_print", s)
 }

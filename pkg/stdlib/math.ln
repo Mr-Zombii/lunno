@@ -124,14 +124,14 @@ let absf: fn(float) -> float {
 # Round a floating-point number down to the nearest integer.
 let floor: fn(float) -> int {
     fn(x) { 
-        _builtin_floor(x) 
+        builtin_floor(x)
     }
 }
 
 # Round a floating-point number up to the nearest integer.
 let ceil: fn(float) -> int {
     fn(x) {
-        _builtin_ceil(x) 
+        builtin_ceil(x)
     }
 }
 

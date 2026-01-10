@@ -42,18 +42,41 @@ func Tokenize(source, filename string) (*Lexer, []Token, error) {
 
 func (lexer *Lexer) Next() Token {
 	for lexer.position < lexer.sourceLen {
-		cc := classify(lexer.Source[lexer.position])
+		ch := lexer.Source[lexer.position]
+		cc := classify(ch)
 		if cc == CC_Whitespace || cc == CC_Newline {
 			lexer.advance()
-		} else {
-			break
+			continue
 		}
+		if ch == '#' {
+			for lexer.position < lexer.sourceLen && lexer.Source[lexer.position] != '\n' {
+				lexer.advance()
+			}
+			continue
+		}
+		break
 	}
 	lexer.startPos = lexer.position
 	lexer.startLine = lexer.line
 	lexer.startColumn = lexer.column
+
 	if lexer.position >= lexer.sourceLen {
 		return lexer.makeToken(EndOfFile, "")
+	}
+	for opLen := uint16(2); opLen > 0; opLen-- {
+		if lexer.position+opLen <= lexer.sourceLen {
+			sub := string(lexer.Source[lexer.position : lexer.position+opLen])
+			if tt, ok := multiCharOperators[sub]; ok {
+				lexer.position += opLen
+				lexer.column += opLen
+				return lexer.makeToken(tt, sub)
+			}
+		}
+	}
+	ch := lexer.peek()
+	if tt, ok := singleCharTokens[byte(ch)]; ok {
+		lexer.advance()
+		return lexer.makeToken(tt, string(ch))
 	}
 	state := S_Start
 	for lexer.position < lexer.sourceLen {

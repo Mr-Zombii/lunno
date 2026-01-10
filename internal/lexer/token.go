@@ -49,6 +49,8 @@ const (
 	Comma
 	Colon
 	Arrow
+	Pipe
+	Underscore
 
 	KwLet
 	KwRec
@@ -56,6 +58,9 @@ const (
 	KwIf
 	KwThen
 	KwElse
+	KwMatch
+	KwWith
+	KwWhen
 	KwImport
 	KwFrom
 	KwInt
@@ -76,6 +81,9 @@ var keywords = map[string]TokenType{
 	"if":     KwIf,
 	"then":   KwThen,
 	"else":   KwElse,
+	"match":  KwMatch,
+	"with":   KwWith,
+	"when":   KwWhen,
 	"import": KwImport,
 	"from":   KwFrom,
 	"int":    KwInt,
@@ -98,6 +106,7 @@ func Keywords() map[string]TokenType {
 }
 
 var precedences = map[TokenType]int{
+	Arrow:    -1,
 	Colon:    1,
 	Equal:    2,
 	NotEqual: 2,
@@ -128,7 +137,8 @@ var singleCharTokens = map[byte]TokenType{
 	'+': Plus, '-': Minus,
 	'*': Asterisk, '/': Slash,
 	':': Colon, ',': Comma,
-	'=': Assign,
+	'=': Assign, '|': Pipe, '_': Underscore,
+	'<': LessThan, '>': GreaterThan,
 }
 
 type bracePair struct {
